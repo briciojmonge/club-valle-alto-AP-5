@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<section class="hero" aria-labelledby="t-hero">
+  <h1 id="t-hero">Bienvenido al Club Valle Alto</h1>
+  <p>Consulte su información, reserve instalaciones, registre invitados y revise su estado de cuenta desde cualquier lugar y dispositivo.</p>
+  <p class="acciones">
+    {% if g.socio %}<a class="btn btn-primario" href="{{ url_for('portal.inicio') }}">Ir a mi portal</a>
+    {% elif g.admin %}<a class="btn btn-primario" href="{{ url_for('admin_core.panel') }}">Ir al panel</a>
+    {% else %}<a class="btn btn-primario" href="{{ url_for('auth.login') }}">Ingresar</a>
+    <a class="btn btn-secundario" href="{{ url_for('auth.registro') }}">Registrarme como socio</a>{% endif %}
+  </p>
+</section>
+<h2>Nuestras instalaciones</h2>
+<div class="rejilla">
+  {% for i in instalaciones %}
+  <article class="tarjeta">
+    <h3>{{ i.nombre }}</h3>
+    <p>{{ i.descripcion }}</p>
+    <p class="dato-etiqueta">Horario: {{ i.hora_apertura }} a {{ i.hora_cierre }} · Aforo máximo: {{ i.aforo_max }}</p>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

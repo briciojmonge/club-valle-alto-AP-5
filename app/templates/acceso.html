@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+{% include "_head.html" %}
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido principal</a>
+  <div class="acceso">
+    <div class="acceso-marca">
+      <h1>Club Valle Alto</h1>
+      <p>Golf · Tenis · Piscina · Salón de eventos</p>
+      <div class="raya" aria-hidden="true"></div>
+    </div>
+    <main id="contenido" class="acceso-cuerpo" tabindex="-1">
+      <div class="acceso-tarjeta">
+        <h2>{% block acceso_titulo %}{% endblock %}</h2>
+        <p class="subtitulo">{% block acceso_sub %}{% endblock %}</p>
+        {% include "_mensajes.html" %}
+        {% block acceso_cuerpo %}{% endblock %}
+      </div>
+      {% block acceso_pie %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

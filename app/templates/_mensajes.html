@@ -1,0 +1,9 @@
+{% with mensajes = get_flashed_messages(with_categories=true) %}
+  {% if mensajes %}
+    <div class="mensajes">
+    {% for cat, msg in mensajes %}
+      <p class="alerta alerta-{{ cat }}" role="{{ 'alert' if cat == 'error' else 'status' }}">{{ msg }}</p>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}

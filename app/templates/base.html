@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+{% include "_head.html" %}
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido principal</a>
+{% if g.admin or g.socio %}
+  {% set ep = request.endpoint or '' %}
+  {% if g.admin %}
+    {% set rol = g.admin.rol %}
+    {% set items = [
+      ('Panel', 'admin_core.panel', ['admin_core.panel'], True),
+      ('Socios', 'admin_core.socios', ['admin_core.socios', 'admin_core.socio_detalle', 'admin_core.socio_temporal'], puede(rol, 'socios')),
+      ('Membresías', 'admin_cobros.membresias', ['admin_cobros.membresias', 'admin_cobros.membresia_nueva', 'admin_cobros.membresia_detalle'], puede(rol, 'membresias')),
+      ('Invitados del día', 'admin_ops.invitados_esperados', ['admin_ops.invitados_esperados'], puede(rol, 'invitados')),
+      ('Instalaciones', 'admin_ops.instalaciones', ['admin_ops.instalaciones', 'admin_ops.instalacion_editar'], puede(rol, 'instalaciones')),
+      ('Reservas', 'admin_ops.reservas', ['admin_ops.reservas', 'admin_ops.reserva_detalle', 'admin_ops.reserva_editar'], puede(rol, 'reservas')),
+      ('Calendario', 'admin_ops.calendario', ['admin_ops.calendario'], puede(rol, 'reservas')),
+      ('Ocupación y reportes', 'admin_ops.ocupacion', ['admin_ops.ocupacion', 'admin_ops.reporte_uso'], puede(rol, 'reportes_uso')),
+      ('Cobros', 'admin_cobros.cuentas', ['admin_cobros.cuentas'], puede(rol, 'cuentas')),
+      ('Socios morosos', 'admin_cobros.morosos', ['admin_cobros.morosos'], puede(rol, 'cuentas')),
+      ('Plantillas de correo', 'admin_core.plantillas', ['admin_core.plantillas', 'admin_core.plantilla_editar'], puede(rol, 'plantillas')),
+      ('Historial de correos', 'admin_core.notificaciones', ['admin_core.notificaciones', 'admin_core.notificacion_detalle'], puede(rol, 'notificaciones')),
+      ('Administradores', 'admin_core.usuarios', ['admin_core.usuarios'], puede(rol, 'usuarios_admin')),
+      ('Reglas del club', 'admin_core.reglas', ['admin_core.reglas'], puede(rol, 'reglas')),
+    ] %}
+  {% else %}
+    {% set items = [
+      ('Panel', 'portal.inicio', ['portal.inicio'], True),
+      ('Mi perfil', 'portal.perfil', ['portal.perfil', 'portal.password'], True),
+      ('Mi membresía', 'portal.membresia', ['portal.membresia'], True),
+      ('Mis invitados', 'portal.invitados', ['portal.invitados'], True),
+      ('Nueva reserva', 'portal.reserva_nueva', ['portal.reserva_nueva'], True),
+      ('Mis reservas', 'portal.reservas', ['portal.reservas', 'portal.reserva_editar'], True),
+      ('Estado de cuenta', 'portal.cuenta_historial', ['portal.cuenta_historial', 'portal.cuenta_detalle'], True),
+    ] %}
+  {% endif %}
+  <div class="app">
+    <aside class="lateral">
+      <a class="lateral-marca" href="{{ url_for('admin_core.panel' if g.admin else 'portal.inicio') }}"><strong>Club Valle Alto</strong><span>Sistema de gestión</span></a>
+      <nav aria-label="Navegación principal">
+        {% for texto, destino, activos, visible in items if visible %}
+          <a href="{{ url_for(destino) }}" {% if ep in activos %}aria-current="page"{% endif %}>{{ texto }}</a>
+        {% endfor %}
+      </nav>
+    </aside>
+    <div class="principal">
+      <header class="barra-superior">
+        <span>{{ (g.admin or g.socio).nombre.split(' ')[0] }} {{ (g.admin or g.socio).nombre.split(' ')[1] if (g.admin or g.socio).nombre.split(' ')|length > 1 else '' }} · {{ ROLES[g.admin.rol] if g.admin else 'Socio' }}</span>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button type="submit" class="enlace-boton">Cerrar sesión</button>
+        </form>
+      </header>
+{% else %}
+  <header class="publico-barra"><a href="{{ url_for('auth.inicio') }}">Club Valle Alto</a></header>
+{% endif %}
+      <main id="contenido" {% if not (g.admin or g.socio) %}class="publico-cuerpo"{% endif %} tabindex="-1">
+        {% include "_mensajes.html" %}
+        {% block contenido %}{% endblock %}
+      </main>
+{% if g.admin or g.socio %}
+      <footer class="pie">Club Valle Alto · Prototipo académico IC4810 Administración de Proyectos (TEC). Los datos de esta demostración son ficticios.</footer>
+    </div>
+  </div>
+{% endif %}
+</body>
+</html>

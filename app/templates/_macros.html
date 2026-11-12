@@ -1,0 +1,62 @@
+{# Macros reutilizables de formulario y presentación (accesibles: etiquetas explícitas, ayudas asociadas). #}
+
+{% macro csrf() %}<input type="hidden" name="_csrf" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro field(name, label, f=none, type='text', required=true, hint='', autocomplete='off', min=none, max=none, step=none, maxlength=none, pattern=none, inputmode=none, idp='') %}
+  {% set val = f[name] if f is not none else '' %}
+  <div class="campo">
+    <label for="{{ idp }}{{ name }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span><span class="sr-only">(obligatorio)</span>{% endif %}</label>
+    <input id="{{ idp }}{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ val if val is not none else '' }}"
+           {% if required %}required{% endif %} autocomplete="{{ autocomplete }}"
+           {% if min is not none %}min="{{ min }}"{% endif %} {% if max is not none %}max="{{ max }}"{% endif %}
+           {% if step is not none %}step="{{ step }}"{% endif %} {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+           {% if pattern %}pattern="{{ pattern }}"{% endif %} {% if inputmode %}inputmode="{{ inputmode }}"{% endif %}
+           {% if hint %}aria-describedby="{{ idp }}{{ name }}-ayuda"{% endif %}>
+    {% if hint %}<p class="ayuda" id="{{ idp }}{{ name }}-ayuda">{{ hint }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro select(name, label, opciones, f=none, required=true, vacio='Seleccione…', hint='') %}
+  {% set val = (f[name] if f is not none else '')|string %}
+  <div class="campo">
+    <label for="{{ name }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span><span class="sr-only">(obligatorio)</span>{% endif %}</label>
+    <select id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %} {% if hint %}aria-describedby="{{ name }}-ayuda"{% endif %}>
+      {% if vacio %}<option value="">{{ vacio }}</option>{% endif %}
+      {% for valor, texto in opciones %}
+        <option value="{{ valor }}" {% if val == valor|string %}selected{% endif %}>{{ texto }}</option>
+      {% endfor %}
+    </select>
+    {% if hint %}<p class="ayuda" id="{{ name }}-ayuda">{{ hint }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro badge(estado, texto=none) %}
+  {% set clase = {'activa':'ok','activo':'ok','confirmada':'ok','pagado':'ok','enviado':'ok','libre':'ok','ocupada':'error',
+                  'pendiente':'aviso','parcial':'aviso','simulado':'neutro','omitido':'neutro','finalizada':'neutro',
+                  'suspendida':'aviso','suspendido':'aviso','vencida':'error','vencido':'error','error':'error','bloqueada':'error','completa':'error',
+                  'cancelada':'neutro','baja':'neutro','desactivado':'neutro','anulado':'neutro','inactiva':'neutro'}.get(estado, 'neutro') %}
+  {% set etiquetas = {'desactivado':'Inactiva','suspendido':'Suspendida','activo':'Activa','simulado':'Simulado'} %}
+  <span class="badge badge-{{ clase }}">{{ texto or etiquetas.get(estado, estado|capitalize) }}</span>
+{% endmacro %}
+
+{% macro badge_reserva(estado) %}{{ badge(estado, 'Por confirmar' if estado == 'pendiente' else none) }}{% endmacro %}
+
+{# Botón que abre una ventana modal (<dialog id=...>). Requiere JS (app.js). #}
+{% macro abrir_modal(id, texto, clase='enlace-boton') %}<button type="button" class="{{ clase }}" data-modal="{{ id }}">{{ texto }}</button>{% endmacro %}
+
+{# Botón de formulario con aspecto de enlace (acciones en tablas). #}
+{% macro enlace_post(url, texto, confirmar=none, campos={}, clase='enlace-boton') %}
+  <form method="post" action="{{ url }}" class="en-linea">
+    {{ csrf() }}
+    {% for k, v in campos.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <button type="submit" class="{{ clase }}" {% if confirmar %}data-confirmar="{{ confirmar }}"{% endif %}>{{ texto }}</button>
+  </form>
+{% endmacro %}
+
+{% macro boton_post(url, texto, confirmar=none, clase='btn btn-secundario', campos={}) %}
+  <form method="post" action="{{ url }}" class="en-linea">
+    {{ csrf() }}
+    {% for k, v in campos.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <button type="submit" class="{{ clase }}" {% if confirmar %}data-confirmar="{{ confirmar }}"{% endif %}>{{ texto }}</button>
+  </form>
+{% endmacro %}
