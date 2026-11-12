@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block titulo %}Historial de correos{% endblock %}
+{% block contenido %}
+<h1>Historial de correos</h1>
+<form method="get" class="filtros">
+  <div class="campo"><label for="socio_id">Socio</label>
+    <select id="socio_id" name="socio_id"><option value="">Todos</option>{% for s in socios %}<option value="{{ s.id }}" {% if socio_id == s.id %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="codigo">Tipo</label>
+    <select id="codigo" name="codigo"><option value="">Todos</option>{% for p in plantillas %}<option value="{{ p.codigo }}" {% if codigo == p.codigo %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="fecha">Fecha</label><input id="fecha" type="date" name="fecha" value="{{ fecha }}"></div>
+  <button class="btn btn-secundario" type="submit">Filtrar</button>
+</form>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Fecha</th><th scope="col">Socio</th><th scope="col">Tipo</th><th scope="col">Asunto</th><th scope="col">Envío</th><th scope="col">Acción</th></tr></thead>
+  <tbody>
+  {% for n in lista %}<tr><td>{{ n.creado_en|fecha }}</td><td>{{ n.socio_nombre or '—' }}</td>
+    <td>{% for p in plantillas if p.codigo == n.codigo %}{{ p.nombre }}{% else %}{{ n.codigo }}{% endfor %}</td><td>{{ n.asunto }}</td><td>{{ badge(n.estado) }}</td>
+    <td class="acciones-tabla"><a href="{{ url_for('admin_core.notificacion_detalle', nid=n.id) }}">Ver</a></td></tr>
+  {% else %}<tr><td colspan="6" class="vacio">No hay correos con esos filtros.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block titulo %}Notificación {{ n.id }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('admin_core.notificaciones') }}">← Volver al historial</a></p>
+<h1>{{ n.asunto }}</h1>
+<section class="tarjeta">
+  <dl class="detalle">
+    <dt>Fecha</dt><dd>{{ n.creado_en|fechahora }}</dd><dt>Socio</dt><dd>{{ n.socio_nombre or '—' }}</dd>
+    <dt>Destinatario</dt><dd>{{ n.destinatario }}</dd><dt>Tipo</dt><dd>{{ n.codigo }}</dd>
+    <dt>Estado</dt><dd>{{ badge(n.estado) }}</dd>{% if n.detalle %}<dt>Detalle</dt><dd>{{ n.detalle }}</dd>{% endif %}
+  </dl>
+</section>
+<h2>Mensaje</h2>
+<pre class="tarjeta cuerpo-mensaje">{{ n.cuerpo }}</pre>
+{% endblock %}
