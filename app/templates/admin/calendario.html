@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge_reserva %}
+{% block titulo %}Calendario de reservas{% endblock %}
+{% block contenido %}
+<h1>Calendario de reservas</h1>
+<div class="cal-barra">
+  <form method="get" class="campo"><label for="instalacion_id">Instalación</label>
+    <select id="instalacion_id" name="instalacion_id" data-autoenviar>{% for i in insts %}<option value="{{ i.id }}" {% if inst and i.id == inst.id %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select>
+    <input type="hidden" name="fecha" value="{{ lunes.isoformat() }}"><noscript><button class="btn btn-secundario" type="submit">Ver</button></noscript></form>
+  <p class="cal-nav">
+    <a href="{{ url_for('admin_ops.calendario', instalacion_id=inst.id, fecha=anterior) }}" aria-label="Semana anterior">‹</a>
+    <span>{{ lunes.day }} – {{ (fin_semana.isoformat()|dia_corto(true)).split(' ', 1)[1] }}</span>
+    <a href="{{ url_for('admin_ops.calendario', instalacion_id=inst.id, fecha=siguiente) }}" aria-label="Semana siguiente">›</a>
+  </p>
+</div>
+{% if inst %}
+<div class="cal-envoltura">
+  <div>
+    <div class="cal-marco">
+      <div class="cal" role="grid" aria-label="Calendario semanal de {{ inst.nombre }}">
+        <div class="cal-cab"></div>
+        {% for d in dias %}<div class="cal-cab">{{ d.fecha.isoformat()|dia_corto }}</div>{% endfor %}
+        {% for etiqueta, fila in horas %}
+          <div class="cal-hora r{{ fila }} c1">{{ etiqueta }}</div>
+          {% for d in dias %}<div class="cal-celda r{{ fila }} c{{ loop.index + 1 }} {% if d.fecha.isoformat() == hoy_iso %}dia-hoy{% endif %}"></div>{% endfor %}
+        {% endfor %}
+        {% for e in eventos %}
+          {% if e.bloqueo %}<div class="cal-evento {{ e.clase }}" title="{{ e.titulo }}">{{ e.texto }}</div>
+          {% else %}<a class="cal-evento {{ e.clase }}{% if e.elegido %} elegido{% endif %}" title="{{ e.titulo }}" aria-label="Reserva de {{ e.titulo }}"
+                       href="{{ url_for('admin_ops.calendario', instalacion_id=inst.id, fecha=lunes.isoformat(), reserva=e.id) }}">{{ e.texto }}</a>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="cal-leyenda"><span class="badge badge-ok">Confirmada</span><span class="badge badge-aviso">Por confirmar</span><span class="badge badge-neutro">Bloqueo</span></div>
+  </div>
+  <aside class="tarjeta" aria-labelledby="t-det">
+    <h2 id="t-det">Detalle de la reserva</h2>
+    {% if detalle %}
+      {% set r = detalle.r %}
+      <dl class="detalle">
+        <dt>Socio</dt><dd>{{ detalle.socio }}</dd>
+        <dt>Fecha</dt><dd>{{ r.fecha|dia_corto }}, {{ r.hora_inicio }} – {{ r.hora_fin }}</dd>
+        <dt>Personas</dt><dd>{{ r.personas }}</dd>
+        <dt>Invitados</dt><dd>{% for i in detalle.invitados %}{{ i.nombre }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</dd>
+        <dt>Servicios</dt><dd>{% for s in detalle.servicios %}{{ s.nombre }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</dd>
+      </dl>
+      <p>{{ badge_reserva(r.estado) }}</p>
+      {% if r.estado in ('pendiente', 'confirmada') %}
+      <div class="acciones">
+        <a class="btn btn-secundario" href="{{ url_for('admin_ops.reserva_editar', rid=r.id) }}">Modificar</a>
+        <button type="button" class="btn btn-peligro" data-modal="m-cancelar">Cancelar</button>
+      </div>
+      <dialog class="modal" id="m-cancelar" aria-label="Cancelar reserva">
+        <form method="post" action="{{ url_for('admin_ops.reserva_cancelar', rid=r.id) }}">
+          <h2>Cancelar reserva</h2>{{ csrf() }}
+          <p>¿Desea cancelar la reserva de <strong>{{ detalle.socio }}</strong> del {{ r.fecha|dia_corto }}, {{ r.hora_inicio }} – {{ r.hora_fin }}? Se notificará al socio.</p>
+          <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Volver</button><button class="btn btn-peligro" type="submit">Cancelar reserva</button></div>
+        </form>
+      </dialog>
+      {% endif %}
+    {% else %}<p class="nota">Seleccione una reserva del calendario para ver su detalle.</p>{% endif %}
+  </aside>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, badge_reserva %}
+{% block titulo %}Reservas{% endblock %}
+{% block contenido %}
+<h1>Reservas</h1>
+<form method="get" class="filtros">
+  <div class="campo"><label for="desde">Desde</label><input id="desde" type="date" name="desde" value="{{ a.get('desde','') }}"></div>
+  <div class="campo"><label for="hasta">Hasta</label><input id="hasta" type="date" name="hasta" value="{{ a.get('hasta','') }}"></div>
+  <div class="campo"><label for="instalacion_id">Instalación</label>
+    <select id="instalacion_id" name="instalacion_id"><option value="">Todas</option>
+      {% for i in instalaciones %}<option value="{{ i.id }}" {% if a.get('instalacion_id') == i.id|string %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="estado">Estado</label>
+    <select id="estado" name="estado"><option value="">Todos</option>
+      {% for e in ['pendiente','confirmada','finalizada','cancelada'] %}<option value="{{ e }}" {% if a.get('estado') == e %}selected{% endif %}>{{ e|capitalize }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="q">Socio (nombre o cédula)</label><input id="q" type="search" name="q" value="{{ a.get('q','') }}"></div>
+  <button class="btn btn-primario" type="submit">Filtrar</button>
+</form>
+{% if lista %}
+<div class="tabla-envoltura"><table>
+  <caption class="sr-only">Reservas registradas</caption>
+  <thead><tr><th scope="col">#</th><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Instalación</th><th scope="col">Socio</th><th scope="col">Personas</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Detalle</span></th></tr></thead>
+  <tbody>{% for r in lista %}<tr><td>{{ r.id }}</td><td>{{ r.fecha|fecha }}</td><td>{{ r.hora_inicio }}–{{ r.hora_fin }}</td><td>{{ r.instalacion }}</td><td>{{ r.socio_nombre }}</td><td>{{ r.personas }}</td><td>{{ badge_reserva(r.estado) }}</td>
+    <td><a href="{{ url_for('admin_ops.reserva_detalle', rid=r.id) }}">Ver<span class="sr-only"> reserva {{ r.id }}</span></a></td></tr>{% endfor %}</tbody>
+</table></div>
+<p class="ayuda">{{ lista|length }} reserva(s){% if lista|length >= 500 %} (se muestran las 500 más recientes; afine los filtros){% endif %}.</p>
+{% else %}<p class="vacio">No hay reservas con esos filtros.</p>{% endif %}
+{% endblock %}

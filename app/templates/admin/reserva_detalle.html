@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge, badge_reserva, boton_post %}
+{% block titulo %}Reserva {{ r.id }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('admin_ops.reservas') }}">← Volver a las reservas</a></p>
+<h1>Reserva #{{ r.id }} · {{ r.instalacion }}</h1>
+<div class="dos-col">
+  <section class="tarjeta" aria-labelledby="t-r"><h2 id="t-r">Detalle</h2>
+    <dl class="detalle">
+      <dt>Estado</dt><dd>{{ badge_reserva(r.estado) }}</dd><dt>Fecha</dt><dd>{{ r.fecha|fecha }}</dd><dt>Horario</dt><dd>{{ r.hora_inicio }}–{{ r.hora_fin }}</dd>
+      <dt>Personas</dt><dd>{{ r.personas }}</dd><dt>Creada</dt><dd>{{ r.creado_en|fechahora }}</dd>
+    </dl>
+  </section>
+  <section class="tarjeta" aria-labelledby="t-s"><h2 id="t-s">Socio</h2>
+    <dl class="detalle"><dt>Nombre</dt><dd>{{ r.socio_nombre }}</dd><dt>Cédula</dt><dd>{{ r.socio_cedula }}</dd><dt>Correo</dt><dd>{{ r.socio_correo }}</dd></dl>
+  </section>
+</div>
+<h2>Servicios adicionales solicitados</h2>
+{% if servicios %}<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Servicio</th><th scope="col" class="num">Costo</th></tr></thead>
+  <tbody>{% for s in servicios %}<tr><td>{{ s.nombre }}</td><td class="num">{{ s.costo|dinero }}</td></tr>{% endfor %}
+  <tr><th scope="row">Total</th><td class="num"><strong>{{ total|dinero }}</strong></td></tr></tbody>
+</table></div>{% else %}<p class="vacio">Sin servicios adicionales.</p>{% endif %}
+<h2>Invitados asociados</h2>
+{% if invitados %}<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Nombre</th><th scope="col">Cédula</th><th scope="col">Relación</th></tr></thead>
+  <tbody>{% for i in invitados %}<tr><td>{{ i.nombre }}</td><td>{{ i.cedula }}</td><td>{{ i.relacion|capitalize }}</td></tr>{% endfor %}</tbody>
+</table></div>{% else %}<p class="vacio">El socio no registró invitados para esta fecha e instalación.</p>{% endif %}
+{% if r.estado in ['pendiente','confirmada'] %}
+<div class="acciones">
+  {% if r.estado == 'pendiente' %}{{ boton_post(url_for('admin_ops.reserva_confirmar', rid=r.id), 'Confirmar reserva', none, 'btn btn-primario') }}{% endif %}
+  <a class="btn btn-secundario" href="{{ url_for('admin_ops.reserva_editar', rid=r.id) }}">Modificar</a>
+  {{ boton_post(url_for('admin_ops.reserva_cancelar', rid=r.id), 'Cancelar reserva', '¿Cancelar esta reserva y notificar al socio?', 'btn btn-peligro') }}
+</div>
+{% endif %}
+{% endblock %}

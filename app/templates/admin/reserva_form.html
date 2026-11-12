@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}Modificar reserva {{ r.id }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('admin_ops.reserva_detalle', rid=r.id) }}">← Volver al detalle</a></p>
+<h1>Modificar reserva #{{ r.id }}</h1>
+<p>{{ inst.nombre }} · socio {{ r.socio_nombre }} · atiende de {{ inst.hora_apertura }} a {{ inst.hora_cierre }} · aforo {{ inst.aforo_max }}.</p>
+<form method="post" class="formulario tarjeta" novalidate>
+  {{ csrf() }}
+  {{ field('fecha', 'Fecha', f, type='date', min=hoy().isoformat()) }}
+  <div class="fila-campos">{{ field('hora_inicio', 'Hora de inicio', f, type='time') }}{{ field('hora_fin', 'Hora de finalización', f, type='time') }}</div>
+  {{ field('personas', 'Número de personas', f, type='number', min=1, max=inst.aforo_max) }}
+  {% if servicios %}<fieldset class="campo"><legend><strong>Servicios adicionales</strong></legend>
+    {% for s in servicios %}<label class="check"><input type="checkbox" name="servicios" value="{{ s.id }}" {% if s.id|string in elegidos %}checked{% endif %}> {{ s.nombre }} ({{ s.costo|dinero }})</label>{% endfor %}
+  </fieldset>{% endif %}
+  <p class="ayuda">Al guardar, el socio recibe una notificación de la modificación.</p>
+  <div class="acciones"><button class="btn btn-primario" type="submit">Guardar cambios</button><a href="{{ url_for('admin_ops.reserva_detalle', rid=r.id) }}">Cancelar</a></div>
+</form>
+{% endblock %}
