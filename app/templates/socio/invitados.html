@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, select, enlace_post %}
+{% block titulo %}Mis invitados{% endblock %}
+{% block contenido %}
+<h1>Mis invitados</h1>
+{% if not m or m.estado != 'activa' %}
+  <p class="alerta alerta-error" role="status">Necesita una membresía activa para registrar invitados.</p>
+{% else %}
+  {% set restantes = limite - usados %}
+  <div class="rejilla-2">
+    <section class="tarjeta" aria-label="Invitados del mes">
+      <p class="dato-etiqueta">Invitados este mes</p>
+      <p class="dato">{{ usados }} de {{ limite }}</p>
+      <progress max="{{ limite if limite else 1 }}" value="{{ usados }}" aria-label="Invitados usados este mes">{{ usados }} de {{ limite }}</progress>
+      {% if restantes <= 0 %}<p class="alerta alerta-error" role="status">Alcanzó el límite mensual de invitados de su membresía {{ m.tipo }}.</p>
+      {% elif restantes == 1 %}<p class="alerta alerta-aviso" role="status">Le queda 1 invitado disponible este mes.</p>{% endif %}
+    </section>
+    <form method="post" class="tarjeta" novalidate>
+      <h2>Registrar invitado</h2>{{ csrf() }}
+      <div class="fila-campos">{{ field('nombre', 'Nombre del invitado', f) }}{{ field('cedula', 'Cédula', f, inputmode='numeric') }}</div>
+      <div class="fila-campos">{{ field('fecha_visita', 'Fecha de visita', f, type='date', min=hoy().isoformat()) }}
+        {{ select('instalacion_id', 'Instalación', opciones, f) }}</div>
+      {{ select('relacion', 'Relación con el socio', [('familiar','Familiar'),('amigo','Amigo'),('otro','Otro')], f) }}
+      <button class="btn btn-primario" type="submit">Registrar invitado</button>
+    </form>
+  </div>
+{% endif %}
+<h2>Invitados registrados</h2>
+{% if lista %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Fecha</th><th scope="col">Invitado</th><th scope="col">Cédula</th><th scope="col">Instalación</th><th scope="col">Relación</th><th scope="col">Acción</th></tr></thead>
+  <tbody>{% for i in lista %}<tr><td>{{ i.fecha_visita|dia_corto }}</td><td>{{ i.nombre }}</td><td>{{ i.cedula }}</td><td>{{ i.instalacion }}</td><td>{{ i.relacion|capitalize }}</td>
+    <td class="acciones-tabla">{% if i.fecha_visita >= hoy().isoformat() %}{{ enlace_post(url_for('portal.invitado_eliminar', iid=i.id), 'Quitar', '¿Quitar a ' ~ i.nombre ~ '?', clase='enlace-boton enlace-peligro') }}{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">No ha registrado invitados.</p>{% endif %}
+{% endblock %}

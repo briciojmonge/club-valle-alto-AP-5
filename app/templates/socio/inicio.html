@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, badge_reserva %}
+{% block titulo %}Panel del socio{% endblock %}
+{% block contenido %}
+<h1>Hola, {{ g.socio.nombre.split(' ')[0] }}</h1>
+{% if m and m.estado != 'activa' %}<p class="alerta alerta-aviso" role="status">Su membresía no está activa: no podrá reservar ni registrar invitados. Contacte a la administración.</p>{% endif %}
+<div class="rejilla">
+  <section class="tarjeta" aria-label="Membresía">
+    <p class="dato-etiqueta">Membresía</p>
+    {% if m %}
+      <p class="dato">{{ m.tipo|capitalize }}</p>
+      <p class="dato-pie">{{ badge(m.estado) }} Renueva el {{ m.fecha_renovacion|fecha }}</p>
+    {% else %}
+      <p class="dato">Sin membresía</p>
+      <p class="dato-pie"><a href="{{ url_for('portal.membresia') }}">Asociar membresía</a></p>
+    {% endif %}
+  </section>
+  <section class="tarjeta" aria-label="Próxima reserva">
+    <p class="dato-etiqueta">Próxima reserva</p>
+    {% if proximas %}
+      <p class="dato">{{ proximas[0].instalacion }}</p>
+      <p class="dato-pie">{{ proximas[0].fecha|dia_corto }} · {{ proximas[0].hora_inicio }}</p>
+    {% else %}
+      <p class="dato">Ninguna</p>
+      <p class="dato-pie"><a href="{{ url_for('portal.reserva_nueva') }}">Reservar ahora</a></p>
+    {% endif %}
+  </section>
+  <section class="tarjeta" aria-label="Saldo pendiente">
+    <p class="dato-etiqueta">Saldo pendiente</p>
+    <p class="dato {{ 'dato-alerta' if res.vencido else ('dato-aviso' if res.pendiente else '') }}">{{ res.pendiente|dinero }}</p>
+    <p class="dato-pie">{% if res.vencido %}Incluye {{ res.vencido|dinero }} vencido{% else %}Periodo {{ periodo|periodo_nombre }}{% endif %}</p>
+  </section>
+  <section class="tarjeta" aria-label="Invitados">
+    <p class="dato-etiqueta">Invitados este mes</p>
+    <p class="dato">{{ cupo[0] }} de {{ cupo[1] }}</p>
+    <p class="dato-pie"><a href="{{ url_for('portal.invitados') }}">Registrar invitados</a></p>
+  </section>
+</div>
+<p class="acciones">
+  <a class="btn btn-primario" href="{{ url_for('portal.reserva_nueva') }}">Nueva reserva</a>
+  <a class="btn btn-secundario" href="{{ url_for('portal.invitados') }}">Registrar invitado</a>
+  <a class="btn btn-secundario" href="{{ url_for('portal.cuenta_historial') }}">Estado de cuenta</a>
+</p>
+<h2>Próximas reservas</h2>
+{% if proximas %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Instalación</th><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Estado</th></tr></thead>
+  <tbody>{% for r in proximas %}<tr><td>{{ r.instalacion }}</td><td>{{ r.fecha|dia_corto }}</td><td>{{ r.hora_inicio }} – {{ r.hora_fin }}</td><td>{{ badge_reserva(r.estado) }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">No tiene reservas próximas.</p>{% endif %}
+{% endblock %}

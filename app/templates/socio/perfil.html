@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}Mi perfil{% endblock %}
+{% block contenido %}
+<h1>Mi perfil</h1>
+<form method="post" class="tarjeta" novalidate>
+  <h2>Datos personales</h2>
+  {{ csrf() }}
+  <div class="fila-campos">
+    {{ field('nombre', 'Nombre completo', f, autocomplete='name', maxlength=120) }}
+    {{ field('cedula', 'Cédula', f, inputmode='numeric') }}
+  </div>
+  <div class="fila-campos">
+    {{ field('correo', 'Correo electrónico', f, type='email', autocomplete='email') }}
+    {{ field('telefono', 'Teléfono', f, type='tel') }}
+  </div>
+  <div class="fila-campos">
+    {{ field('direccion', 'Dirección', f, maxlength=250) }}
+    {{ field('fecha_nacimiento', 'Fecha de nacimiento', f, type='date') }}
+  </div>
+  <div class="acciones">
+    <button class="btn btn-primario" type="submit">Guardar cambios</button>
+    <a class="btn btn-secundario" href="{{ url_for('portal.inicio') }}">Cancelar</a>
+    <a class="empujar" href="{{ url_for('portal.password') }}">Cambiar contraseña</a>
+  </div>
+</form>
+{% endblock %}

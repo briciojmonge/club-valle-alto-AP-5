@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block titulo %}Estado de cuenta {{ periodo }}{% endblock %}
+{% block contenido %}
+<h1>Estado de cuenta {{ periodo }}</h1>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Concepto</th><th scope="col">Tipo</th><th scope="col">Fecha límite</th><th scope="col">Estado</th><th class="num" scope="col">Monto</th></tr></thead>
+  <tbody>
+  {% for c in res.cargos %}<tr><td>{{ c.concepto }}</td><td>{{ 'Cuota' if c.tipo == 'cuota' else 'Servicio' }}</td><td>{{ c.fecha_limite|fecha }}</td><td>{{ badge(c.estado_efectivo) }}</td><td class="num">{{ c.monto|dinero }}</td></tr>{% endfor %}
+  </tbody>
+  <tfoot>
+    <tr><th scope="row" colspan="4">Total del periodo</th><td class="num">{{ res.total|dinero }}</td></tr>
+    <tr><th scope="row" colspan="4">Pagado</th><td class="num">{{ res.pagado|dinero }}</td></tr>
+    <tr><th scope="row" colspan="4">Pendiente de pago</th><td class="num">{{ res.pendiente|dinero }}</td></tr>
+  </tfoot>
+</table></div>
+<p class="acciones"><a class="btn btn-primario" href="{{ url_for('portal.cuenta_pdf', periodo=periodo) }}">Descargar resumen en PDF</a>
+  <a class="btn btn-secundario" href="{{ url_for('portal.cuenta_historial') }}">Volver al historial</a></p>
+<p class="ayuda">Los pagos los registra el personal administrativo del club; esta plataforma no procesa pagos en línea.</p>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block titulo %}Estado de cuenta{% endblock %}
+{% block contenido %}
+<div class="encabezado-seccion"><h1>Estado de cuenta</h1>
+  {% if res %}<a class="btn btn-primario" href="{{ url_for('portal.cuenta_pdf', periodo=periodo) }}">Descargar PDF</a>{% endif %}</div>
+{% if res %}
+<div class="rejilla">
+  <section class="tarjeta"><p class="dato-etiqueta">Periodo</p><p class="dato">{{ periodo|periodo_nombre }}</p></section>
+  <section class="tarjeta"><p class="dato-etiqueta">Total del periodo</p><p class="dato">{{ res.total|dinero }}</p></section>
+  <section class="tarjeta"><p class="dato-etiqueta">Pendiente de pago</p><p class="dato {{ 'dato-alerta' if res.vencido else ('dato-aviso' if res.pendiente else '') }}">{{ res.pendiente|dinero }}</p></section>
+</div>
+<h2>Detalle del periodo</h2>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Concepto</th><th class="num" scope="col">Monto</th><th scope="col">Fecha límite</th><th scope="col">Estado</th></tr></thead>
+  <tbody>{% for c in res.cargos %}<tr><td>{{ c.concepto }}</td><td class="num">{{ c.monto|dinero }}</td><td>{{ c.fecha_limite|fecha }}</td><td>{{ badge(c.estado_efectivo) }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">Todavía no se ha generado un estado de cuenta para {{ periodo|periodo_nombre }}.</p>{% endif %}
+
+<h2>Historial de periodos</h2>
+{% if periodos %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Periodo</th><th class="num" scope="col">Total</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+  <tbody>{% for p in periodos %}<tr><td>{{ p.periodo|periodo_nombre }}</td><td class="num">{{ p.total|dinero }}</td>
+    <td>{% if p.vencido %}{{ badge('vencida') }}{% elif p.pendiente %}{{ badge('pendiente') }}{% else %}{{ badge('pagado', 'Pagado') }}{% endif %}</td>
+    <td class="acciones-tabla"><a href="{{ url_for('portal.cuenta_detalle', periodo=p.periodo) }}">Ver</a><a href="{{ url_for('portal.cuenta_pdf', periodo=p.periodo) }}">PDF</a></td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">Aún no tiene estados de cuenta.</p>{% endif %}
+<p class="nota">Los pagos los registra el personal administrativo del club; esta plataforma no procesa pagos en línea.</p>
+{% endblock %}

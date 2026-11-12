@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, select, badge, abrir_modal, enlace_post %}
+{% block titulo %}Mi membresía{% endblock %}
+{% block contenido %}
+<h1>Mi membresía</h1>
+{% if not m %}
+<p class="subtitulo">Seleccione el tipo de membresía que desea asociar a su cuenta. La honoraria solo la asigna el personal del club.</p>
+<div class="rejilla">
+  {% for t in tipos %}{% if t.autoservicio %}
+  <article class="tarjeta">
+    <h2>{{ t.tipo|capitalize }}</h2>
+    <p class="dato">{{ t.cuota_mensual|dinero }}</p><p class="dato-pie">por mes</p>
+    <ul><li>Invitados por mes: {{ t.limite_invitados_mes }}</li>{% if t.max_beneficiarios %}<li>Hasta {{ t.max_beneficiarios }} beneficiarios</li>{% endif %}</ul>
+    <form method="post">{{ csrf() }}<input type="hidden" name="tipo" value="{{ t.tipo }}">
+      <button class="btn btn-primario" type="submit">Elegir {{ t.tipo }}</button></form>
+  </article>
+  {% endif %}{% endfor %}
+</div>
+{% else %}
+<section class="tarjeta" aria-labelledby="t-d">
+  <div class="encabezado-titulo"><h2 id="t-d">Membresía actual</h2>{{ badge(m.estado) }}</div>
+  <dl class="fila-datos">
+    <div><dt>Tipo</dt><dd>{{ m.tipo|capitalize }}</dd></div>
+    <div><dt>Inscripción</dt><dd>{{ m.fecha_inscripcion|fecha }}</dd></div>
+    <div><dt>Renovación</dt><dd>{{ m.fecha_renovacion|fecha }}</dd></div>
+    <div><dt>Cuota mensual</dt><dd>{{ m.cuota|dinero }}</dd></div>
+    <div><dt>Invitados por mes</dt><dd>{{ t.limite_invitados_mes }}</dd></div>
+  </dl>
+  <hr class="linea">
+  <form method="post" action="{{ url_for('portal.membresia_cambiar') }}" class="filtros">
+    {{ csrf() }}
+    <div class="campo"><label for="tipo-cambio">Cambiar tipo de membresía</label>
+      <select id="tipo-cambio" name="tipo">
+        {% for ti in tipos if ti.autoservicio %}<option value="{{ ti.tipo }}" {% if ti.tipo == m.tipo %}selected{% endif %}>{{ ti.tipo|capitalize }} · {{ ti.cuota_mensual|dinero }}/mes</option>{% endfor %}
+      </select></div>
+    <button class="btn btn-primario" type="submit">Asociar</button>
+  </form>
+  <p class="ayuda">Para suspender o dar de baja su membresía, comuníquese con la administración del club.</p>
+</section>
+
+{% if t.max_beneficiarios %}
+<div class="encabezado-seccion"><h2>Beneficiarios ({{ beneficiarios|length }} de {{ t.max_beneficiarios }})</h2>
+  {% if beneficiarios|length < t.max_beneficiarios %}{{ abrir_modal('m-benef-nuevo', 'Agregar beneficiario', 'btn btn-primario') }}{% endif %}</div>
+{% if beneficiarios %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Nombre</th><th scope="col">Cédula</th><th scope="col">Parentesco</th><th scope="col">Nacimiento</th><th scope="col">Acciones</th></tr></thead>
+  <tbody>{% for b in beneficiarios %}<tr><td>{{ b.nombre }}</td><td>{{ b.cedula }}</td><td>{{ b.parentesco }}</td><td>{{ b.fecha_nacimiento|fecha }}</td>
+    <td class="acciones-tabla">{{ abrir_modal('m-benef-' ~ b.id, 'Editar') }}{{ enlace_post(url_for('portal.beneficiario_eliminar', bid=b.id), 'Quitar', '¿Quitar a ' ~ b.nombre ~ '?', clase='enlace-boton enlace-peligro') }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">Aún no registra beneficiarios.</p>{% endif %}
+{% if beneficiarios|length >= t.max_beneficiarios %}<p class="nota">Alcanzó el máximo de beneficiarios del reglamento del club.</p>{% endif %}
+
+{% macro form_benef(accion, b, titulo, boton, idp) %}
+<form method="post" action="{{ accion }}" novalidate>
+  <h2>{{ titulo }}</h2>{{ csrf() }}
+  {{ field('nombre', 'Nombre completo', b, idp=idp) }}
+  <div class="fila-campos">{{ field('cedula', 'Cédula', b, inputmode='numeric', idp=idp) }}{{ field('parentesco', 'Parentesco', b, idp=idp) }}</div>
+  {{ field('fecha_nacimiento', 'Fecha de nacimiento', b, type='date', idp=idp) }}
+  <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">{{ boton }}</button></div>
+</form>
+{% endmacro %}
+<dialog class="modal" id="m-benef-nuevo" aria-label="Agregar beneficiario">{{ form_benef(url_for('portal.beneficiario_nuevo'), none, 'Agregar beneficiario', 'Guardar', 'bn-') }}</dialog>
+{% for b in beneficiarios %}
+<dialog class="modal" id="m-benef-{{ b.id }}" aria-label="Editar beneficiario">{{ form_benef(url_for('portal.beneficiario_editar', bid=b.id), b, 'Editar beneficiario', 'Guardar cambios', 'be' ~ b.id ~ '-') }}</dialog>
+{% endfor %}
+{% endif %}
+
+<h2>Historial de cambios de estado</h2>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Fecha</th><th scope="col">Cambio</th><th scope="col">Realizado por</th></tr></thead>
+  <tbody>{% for h in historial %}<tr><td>{{ h.fecha|fecha }}</td>
+    <td>{% if h.estado_anterior is none %}Membresía creada · {{ h.estado_nuevo|capitalize }}{% elif h.estado_anterior == h.estado_nuevo %}{{ h.motivo }}{% else %}{{ h.estado_anterior|capitalize }} → {{ h.estado_nuevo|capitalize }}{% endif %}</td>
+    <td>{{ h.actor_nombre }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endif %}
+{% endblock %}

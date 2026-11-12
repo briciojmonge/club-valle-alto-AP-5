@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge_reserva, abrir_modal %}
+{% block titulo %}Mis reservas{% endblock %}
+{% block contenido %}
+<div class="encabezado-seccion"><h1>Mis reservas</h1><a class="btn btn-primario" href="{{ url_for('portal.reserva_nueva') }}">Nueva reserva</a></div>
+<nav class="pestanas" aria-label="Estado de las reservas">
+  {% for clave, texto in (('activas','Activas'),('finalizadas','Finalizadas'),('canceladas','Canceladas')) %}
+  <a href="{{ url_for('portal.reservas', estado=clave) }}" {% if pestana == clave %}aria-current="page"{% endif %}>{{ texto }} ({{ cuentas[clave] }})</a>
+  {% endfor %}
+</nav>
+{% if lista %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Instalación</th><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Personas</th><th scope="col">Estado</th>{% if pestana == 'activas' %}<th scope="col">Acciones</th>{% endif %}</tr></thead>
+  <tbody>{% for r in lista %}<tr><td>{{ r.instalacion }}</td><td>{{ r.fecha|dia_corto }}</td><td>{{ r.hora_inicio }} – {{ r.hora_fin }}</td><td>{{ r.personas }}</td><td>{{ badge_reserva(r.estado) }}</td>
+    {% if pestana == 'activas' %}<td class="acciones-tabla"><a class="enlace-boton" href="{{ url_for('portal.reserva_editar', rid=r.id) }}">Modificar</a>{{ abrir_modal('m-cancelar-' ~ r.id, 'Cancelar', 'enlace-boton enlace-peligro') }}</td>{% endif %}</tr>{% endfor %}</tbody>
+</table></div>
+{% for r in lista if pestana == 'activas' %}
+<dialog class="modal" id="m-cancelar-{{ r.id }}" aria-label="Cancelar reserva">
+  <form method="post" action="{{ url_for('portal.reserva_cancelar', rid=r.id) }}">
+    <h2>Cancelar reserva</h2>{{ csrf() }}
+    <p>¿Desea cancelar su reserva de <strong>{{ r.instalacion }}</strong> del {{ r.fecha|dia_corto }}, {{ r.hora_inicio }} – {{ r.hora_fin }}?</p>
+    <p class="nota">Esta acción no se puede deshacer.</p>
+    <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Volver</button><button class="btn btn-peligro" type="submit">Cancelar reserva</button></div>
+  </form>
+</dialog>
+{% endfor %}
+{% else %}<p class="vacio">No hay reservas en esta categoría.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}{{ 'Modificar reserva' if reserva else 'Nueva reserva' }}{% endblock %}
+{% block contenido %}
+<h1>{{ 'Modificar reserva' if reserva else 'Nueva reserva' }}</h1>
+{% if not reserva and (not m or m.estado != 'activa') %}
+  <p class="alerta alerta-error" role="status">Necesita una membresía activa para reservar instalaciones.</p>
+{% endif %}
+{% if inst %}
+<div class="rejilla-2">
+<form method="post" class="tarjeta" novalidate data-recargar="{{ '0' if reserva else '1' }}">
+  <h2>Datos de la reserva</h2>{{ csrf() }}
+  {% if reserva %}
+    <input type="hidden" name="instalacion_id" value="{{ inst.id }}">
+    <div class="campo"><label for="inst-fija">Instalación</label><input id="inst-fija" type="text" value="{{ inst.nombre }}" readonly></div>
+  {% else %}
+    <div class="campo"><label for="instalacion_id_selector">Instalación</label>
+      <select id="instalacion_id_selector" name="instalacion_id">
+        {% for i in insts %}<option value="{{ i.id }}" {% if i.id == inst.id %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}
+      </select></div>
+  {% endif %}
+  <div class="campo"><label for="fecha">Fecha</label><input id="fecha" name="fecha" type="date" required value="{{ fecha }}" min="{{ hoy().isoformat() }}"></div>
+  <div class="fila-campos">
+    <div class="campo"><label for="hora_inicio">Hora inicio</label>
+      <select id="hora_inicio" name="hora_inicio" required>{% for h in horas[:-1] %}<option value="{{ h }}" {% if f['hora_inicio'] == h %}selected{% endif %}>{{ h }}</option>{% endfor %}</select></div>
+    <div class="campo"><label for="hora_fin">Hora fin</label>
+      <select id="hora_fin" name="hora_fin" required>{% for h in horas[1:] %}<option value="{{ h }}" {% if f['hora_fin'] == h %}selected{% endif %}>{{ h }}</option>{% endfor %}</select></div>
+  </div>
+  {{ field('personas', 'Personas', f, type='number', min=1, max=inst.aforo_max, hint='Máximo ' ~ inst.aforo_max ~ ' en ' ~ inst.nombre ~ '.') }}
+  {% if servicios %}
+  <fieldset><legend>Servicios adicionales</legend>
+    {% for s in servicios %}
+    <label class="check"><input type="checkbox" name="servicios" value="{{ s.id }}" {% if s.id|string in elegidos %}checked{% endif %}> {{ s.nombre }} ({{ s.costo|dinero }})</label>
+    {% endfor %}
+    <p class="ayuda">Los servicios se cargan a su estado de cuenta.</p>
+  </fieldset>
+  {% endif %}
+  <div class="acciones"><button class="btn btn-primario" type="submit">{{ 'Guardar cambios' if reserva else 'Solicitar reserva' }}</button>
+    <a class="btn btn-secundario" href="{{ url_for('portal.reservas') }}">Cancelar</a></div>
+</form>
+
+<section class="tarjeta" aria-labelledby="t-disp">
+  <h2 id="t-disp">Disponibilidad · {{ fecha|dia_corto }}</h2>
+  <form method="get" class="filtros">
+    {% if reserva %}<input type="hidden" name="instalacion_id" value="{{ inst.id }}">{% else %}<input type="hidden" name="instalacion_id" value="{{ inst.id }}">{% endif %}
+    <div class="campo"><label for="fecha_ver">Ver otra fecha</label><input id="fecha_ver" type="date" name="fecha" value="{{ fecha }}" min="{{ hoy().isoformat() }}"></div>
+    <button class="btn btn-secundario" type="submit">Ver</button>
+  </form>
+  <ul class="lista-franjas">
+    {% for fr in franjas %}
+    <li><span>{{ fr.inicio }} – {{ fr.fin }}</span>
+      {% if fr.estado == 'bloqueada' %}<span class="badge badge-neutro" title="{{ fr.motivo }}">Bloqueada</span>
+      {% elif fr.estado == 'libre' %}<span class="badge badge-ok">Libre</span>
+      {% elif fr.estado == 'completa' %}<span class="badge badge-error">Ocupada</span>
+      {% else %}<span class="badge badge-aviso">Cupo {{ fr.personas }}/{{ fr.aforo }}</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <p class="nota">{{ inst.nombre }}: {{ inst.hora_apertura }} a {{ inst.hora_cierre }}. {% if inst.modo == 'compartida' %}Los cupos se comparten entre reservas.{% else %}Cada franja admite una sola reserva.{% endif %}</p>
+</section>
+</div>
+{% endif %}
+{% endblock %}

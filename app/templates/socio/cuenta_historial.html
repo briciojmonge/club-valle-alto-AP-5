@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titulo %}Estado de cuenta{% endblock %}
+{% block contenido %}
+<h1>Mis estados de cuenta</h1>
+{% if periodos %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Periodo</th><th scope="col">Generado</th><th class="num" scope="col">Total</th><th class="num" scope="col">Pendiente</th><th scope="col">Acciones</th></tr></thead>
+  <tbody>{% for p in periodos %}<tr><td>{{ p.periodo }}</td><td>{{ p.generado_en|fechahora }}</td><td class="num">{{ p.total|dinero }}</td><td class="num">{{ p.pendiente|dinero }}</td>
+    <td><a href="{{ url_for('portal.cuenta_detalle', periodo=p.periodo) }}">Ver detalle</a> ·
+        <a href="{{ url_for('portal.cuenta_pdf', periodo=p.periodo) }}">Descargar PDF</a></td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">Todavía no se ha generado ningún estado de cuenta para usted.</p>{% endif %}
+{% endblock %}
