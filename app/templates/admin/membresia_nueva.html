@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, select %}
+{% block titulo %}Nueva membresía{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('admin_cobros.membresias') }}">← Volver a las membresías</a></p>
+<h1>Crear membresía</h1>
+{% if socios %}
+<form method="post" class="formulario tarjeta" novalidate>
+  {{ csrf() }}
+  {{ select('socio_id', 'Socio sin membresía vigente', socios|map(attribute='id')|zip(socios|map(attribute='nombre'))|list, f) }}
+  {{ select('tipo', 'Tipo de membresía', tipos|map(attribute='tipo')|zip(tipos|map(attribute='tipo')|map('capitalize'))|list, f) }}
+  {{ field('cuota', 'Cuota mensual (opcional)', f, type='number', required=false, min=0, step='0.01', hint='Si se deja vacía se usa la cuota estándar del tipo de membresía.') }}
+  <p class="ayuda">La membresía honoraria solo puede ser asignada por el personal.</p>
+  <button class="btn btn-primario" type="submit">Crear membresía</button>
+</form>
+{% else %}<p class="vacio">Todos los socios registrados ya tienen una membresía vigente.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge, abrir_modal %}
+{% block titulo %}Cobros{% endblock %}
+{% block contenido %}
+<h1>Cobros</h1>
+<div class="filtros">
+  <form method="get" class="filtros">
+    <div class="campo"><label for="periodo">Periodo</label>
+      <select id="periodo" name="periodo" data-autoenviar>{% for p in periodos %}<option value="{{ p }}" {% if p == periodo %}selected{% endif %}>{{ p|periodo_nombre }}</option>{% endfor %}</select></div>
+    <div class="campo"><label for="estado">Estado</label>
+      <select id="estado" name="estado" data-autoenviar>
+        {% for v, t in (('','Todos'),('pendiente','Pendiente'),('pagado','Pagado'),('vencido','Vencida')) %}<option value="{{ v }}" {% if estado == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    <div class="campo"><label for="q">Buscar socio</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="Nombre o cédula"></div>
+    <noscript><button class="btn btn-secundario" type="submit">Filtrar</button></noscript>
+    <button class="btn btn-secundario" type="submit">Buscar</button>
+  </form>
+  <form method="post" class="empujar">{{ csrf() }}<input type="hidden" name="periodo" value="{{ periodo }}">
+    <button class="btn btn-primario" type="submit" data-confirmar="¿Generar los estados de cuenta de {{ periodo|periodo_nombre }}? Se notificará a los socios con estado nuevo.">Generar estados de cuenta</button></form>
+</div>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Socio</th><th scope="col">Periodo</th><th class="num" scope="col">Total</th><th class="num" scope="col">Pagado</th><th class="num" scope="col">Pendiente</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead>
+  <tbody>
+  {% for f in lista %}<tr><td>{{ f.nombre }}</td><td>{{ periodo|periodo_nombre(true) }}</td><td class="num">{{ f.total|dinero }}</td><td class="num">{{ f.pagado|dinero }}</td><td class="num">{{ f.pendiente|dinero }}</td>
+    <td>{{ badge(f.estado, {'pagado':'Pagado','pendiente':'Pendiente','vencido':'Vencida'}[f.estado]) }}</td>
+    <td class="acciones-tabla">{% if f.cargos_pendientes %}{{ abrir_modal('m-pago-' ~ f.socio_id, 'Registrar pago') }}{% else %}<a href="{{ url_for('admin_cobros.cuentas', periodo=periodo, q=f.nombre) }}">Ver detalle</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="7" class="vacio">No hay cargos para este periodo. Use «Generar estados de cuenta».</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% for f in lista if f.cargos_pendientes %}
+<dialog class="modal" id="m-pago-{{ f.socio_id }}" aria-label="Registrar pago">
+  <form method="post" action="{{ url_for('admin_cobros.cuenta_pago', cid=f.cargos_pendientes[0].id) }}" data-pago>
+    <h2>Registrar pago</h2>{{ csrf() }}
+    <input type="hidden" name="volver" value="{{ request.full_path.rstrip('?') }}">
+    <div class="campo"><label for="ps-{{ f.socio_id }}">Socio</label><input id="ps-{{ f.socio_id }}" type="text" value="{{ f.nombre }}" readonly></div>
+    <div class="campo"><label for="pr-{{ f.socio_id }}">Rubro</label>
+      <select id="pr-{{ f.socio_id }}" data-monto-destino="pm-{{ f.socio_id }}" data-accion-base="{{ url_for('admin_cobros.cuenta_pago', cid=0) }}">
+        {% for c in f.cargos_pendientes %}<option value="{{ c.id }}" data-monto="{{ c.monto|dinero }}">{{ c.concepto }}</option>{% endfor %}</select></div>
+    <div class="fila-campos">
+      <div class="campo"><label for="pm-{{ f.socio_id }}">Monto</label><input id="pm-{{ f.socio_id }}" type="text" value="{{ f.cargos_pendientes[0].monto|dinero }}" readonly></div>
+      <div class="campo"><label for="pf-{{ f.socio_id }}">Fecha de pago</label><input id="pf-{{ f.socio_id }}" name="fecha_pago" type="date" value="{{ hoy().isoformat() }}" max="{{ hoy().isoformat() }}" required></div>
+    </div>
+    <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Registrar pago</button></div>
+  </form>
+</dialog>
+{% endfor %}
+{% endblock %}

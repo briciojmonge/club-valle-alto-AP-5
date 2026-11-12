@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Socios morosos{% endblock %}
+{% block contenido %}
+<div class="encabezado-seccion"><h1>Socios morosos</h1><button class="btn btn-secundario" type="button" data-imprimir>Imprimir</button></div>
+<form method="get" class="filtros">
+  <div class="campo"><label for="min_dias">Tiempo de atraso</label>
+    <select id="min_dias" name="min_dias" data-autoenviar>
+      {% for v, t in [(0,'Todos'),(31,'Más de 30 días'),(61,'Más de 60 días')] %}<option value="{{ v }}" {% if min_dias == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <noscript><button class="btn btn-secundario" type="submit">Filtrar</button></noscript>
+</form>
+<div class="tabla-envoltura"><table>
+  <caption class="sr-only">Socios con cargos vencidos, de mayor a menor atraso</caption>
+  <thead><tr><th scope="col">Socio</th><th scope="col">Rubro</th><th class="num" scope="col">Monto adeudado</th><th class="num" scope="col">Días de atraso</th><th scope="col">Acción</th></tr></thead>
+  <tbody>{% for m in lista %}<tr><td>{{ m.nombre }}<br><span class="nota">{{ m.correo }} · {{ m.telefono }}</span></td><td>{{ m.rubro }}</td><td class="num">{{ m.monto|dinero }}</td><td class="num">{{ m.dias_atraso }}</td>
+    <td class="acciones-tabla"><a href="{{ url_for('admin_cobros.cuentas', periodo=m.periodo, q=m.cedula) }}">Ver estado de cuenta</a></td></tr>
+  {% else %}<tr><td colspan="5" class="vacio">No hay socios morosos con ese criterio.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

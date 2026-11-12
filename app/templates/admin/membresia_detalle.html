@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, select, badge, boton_post %}
+{% block titulo %}Membresía de {{ m.socio_nombre }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('admin_cobros.membresias') }}">← Volver a las membresías</a></p>
+<h1>Membresía de {{ m.socio_nombre }}</h1>
+<div class="dos-col">
+  <section class="tarjeta" aria-labelledby="t-d"><h2 id="t-d">Datos</h2>
+    <dl class="detalle"><dt>Tipo</dt><dd>{{ m.tipo|capitalize }}</dd><dt>Estado</dt><dd>{{ badge(m.estado) }}</dd>
+      <dt>Inscripción</dt><dd>{{ m.fecha_inscripcion|fecha }}</dd><dt>Renovación</dt><dd>{{ m.fecha_renovacion|fecha }}</dd>
+      <dt>Cuota mensual</dt><dd>{{ m.cuota|dinero }}</dd><dt>Socio</dt><dd><a href="{{ url_for('admin_core.socio_detalle', sid=m.socio_id) if puede(g.admin.rol, 'socios') else '#' }}">{{ m.socio_cedula }}</a></dd></dl>
+  </section>
+  {% if m.estado != 'baja' %}
+  <section class="tarjeta" aria-labelledby="t-e"><h2 id="t-e">Cambiar estado</h2>
+    <form method="post" action="{{ url_for('admin_cobros.membresia_estado', mid=m.id) }}" class="formulario" novalidate>{{ csrf() }}
+      <div class="campo"><label for="estado">Nuevo estado</label><select id="estado" name="estado">
+        {% for e in ['activa','suspendida','vencida','baja'] %}{% if e != m.estado %}<option value="{{ e }}">{{ e|capitalize }}{% if e == 'baja' %} (definitiva){% endif %}</option>{% endif %}{% endfor %}</select></div>
+      {{ field('motivo', 'Motivo', none, required=false, maxlength=250) }}
+      <button class="btn btn-primario" type="submit">Aplicar cambio</button>
+    </form>
+    {{ boton_post(url_for('admin_cobros.membresia_renovar', mid=m.id), 'Renovar y activar', '¿Renovar la membresía por un nuevo periodo?') }}
+  </section>
+  {% endif %}
+</div>
+{% if m.estado != 'baja' %}
+<form method="post" action="{{ url_for('admin_cobros.membresia_modificar', mid=m.id) }}" class="formulario tarjeta" novalidate>
+  <h2>Modificar membresía</h2>{{ csrf() }}
+  {{ select('tipo', 'Tipo', tipos|map(attribute='tipo')|zip(tipos|map(attribute='tipo')|map('capitalize'))|list, m, vacio='') }}
+  <div class="fila-campos">{{ field('cuota', 'Cuota mensual', m, type='number', min=0, step='0.01') }}{{ field('fecha_renovacion', 'Fecha de renovación', m, type='date') }}</div>
+  <button class="btn btn-secundario" type="submit">Guardar modificación</button>
+</form>
+{% endif %}
+
+{% if t.max_beneficiarios %}
+<section aria-labelledby="t-b"><h2 id="t-b">Beneficiarios ({{ beneficiarios|length }} de {{ t.max_beneficiarios }})</h2>
+  {% if beneficiarios %}<div class="tabla-envoltura"><table>
+    <thead><tr><th scope="col">Nombre</th><th scope="col">Cédula</th><th scope="col">Parentesco</th><th scope="col">Nacimiento</th><th scope="col"><span class="sr-only">Acción</span></th></tr></thead>
+    <tbody>{% for b in beneficiarios %}<tr><td>{{ b.nombre }}</td><td>{{ b.cedula }}</td><td>{{ b.parentesco }}</td><td>{{ b.fecha_nacimiento|fecha }}</td>
+      <td>{{ boton_post(url_for('admin_cobros.membresia_beneficiario_eliminar', mid=m.id, bid=b.id), 'Eliminar', '¿Eliminar a ' ~ b.nombre ~ '?', 'btn btn-peligro btn-chico') }}</td></tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p class="vacio">Sin beneficiarios.</p>{% endif %}
+  {% if m.estado != 'baja' and beneficiarios|length < t.max_beneficiarios %}
+  <form method="post" action="{{ url_for('admin_cobros.membresia_beneficiario', mid=m.id) }}" class="formulario tarjeta" novalidate>
+    <h3>Agregar beneficiario</h3>{{ csrf() }}
+    {{ field('nombre', 'Nombre completo', none) }}
+    <div class="fila-campos">{{ field('cedula', 'Cédula', none, inputmode='numeric') }}{{ field('parentesco', 'Parentesco', none) }}</div>
+    {{ field('fecha_nacimiento', 'Fecha de nacimiento', none, type='date') }}
+    <button class="btn btn-secundario" type="submit">Agregar</button>
+  </form>{% endif %}
+</section>
+{% endif %}
+
+<h2>Historial de cambios de estado</h2>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Fecha</th><th scope="col">Cambio</th><th scope="col">Motivo</th><th scope="col">Realizado por</th></tr></thead>
+  <tbody>{% for h in historial %}<tr><td>{{ h.fecha|fechahora }}</td><td>{{ h.estado_anterior or '—' }} → {{ h.estado_nuevo }}</td><td>{{ h.motivo or '' }}</td><td>{{ h.actor }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}
