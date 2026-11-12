@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Plantillas de correo{% endblock %}
+{% block contenido %}
+<h1>Plantillas de correo</h1>
+<div class="plantillas-layout">
+  <section class="tarjeta" aria-labelledby="t-l"><h2 id="t-l">Plantillas</h2>
+    <ul class="lista-vertical">{% for it in lista %}<li><a href="{{ url_for('admin_core.plantilla_editar', codigo=it.codigo) }}" {% if it.codigo == p.codigo %}aria-current="page"{% endif %}>{{ it.nombre }}</a></li>{% endfor %}</ul>
+  </section>
+  <section class="tarjeta" aria-labelledby="t-p"><h2 id="t-p">Plantilla: {{ p.nombre }}</h2>
+    <form method="post" novalidate>
+      {{ csrf() }}
+      <div class="campo"><label for="asunto">Asunto</label><input id="asunto" name="asunto" type="text" required maxlength="200" value="{{ f['asunto'] }}"></div>
+      <div class="campo"><label for="cuerpo">Cuerpo del correo</label><textarea id="cuerpo" name="cuerpo" required maxlength="5000" aria-describedby="vars">{{ f['cuerpo'] }}</textarea>
+        <p class="ayuda" id="vars">Variables disponibles: {% for v in p.variables.split(',') %}<code>{{ '{' ~ v.strip() ~ '}' }}</code> {% endfor %}</p></div>
+      <label class="check"><input type="checkbox" name="activa" value="1" {% if f['activa']|string in ['1','True','on'] %}checked{% endif %}> Plantilla activa (si se desactiva, el mensaje no se envía y queda como «omitido»)</label>
+      <div class="acciones"><button class="btn btn-primario" type="submit" name="accion" value="guardar">Guardar</button>
+        <button class="btn btn-secundario" type="submit" name="accion" value="previsualizar">Vista previa</button></div>
+    </form>
+    {% if previa %}
+    <h3>Vista previa</h3>
+    <div class="vista-previa" aria-live="polite"><strong>Asunto: {{ previa[0] }}</strong><p>{{ previa[1] }}</p></div>
+    <p class="nota">Los datos de la vista previa son de ejemplo; no se envía ningún correo.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

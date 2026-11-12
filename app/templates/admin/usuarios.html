@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, enlace_post %}
+{% block titulo %}Administradores{% endblock %}
+{% block contenido %}
+<h1>Administradores</h1>
+<div class="dos-col usuarios-layout">
+  <div class="tabla-envoltura"><table>
+    <thead><tr><th scope="col">Nombre</th><th scope="col">Cédula</th><th scope="col">Correo</th><th scope="col">Rol</th><th scope="col">Acciones</th></tr></thead>
+    <tbody>{% for a in lista %}<tr><td>{{ a.nombre }}</td><td>{{ a.cedula }}</td><td>{{ a.correo }}</td>
+      <td><form method="post" action="{{ url_for('admin_core.usuario_rol', aid=a.id) }}" class="en-linea">{{ csrf() }}
+        <label class="sr-only" for="rol-{{ a.id }}">Rol de {{ a.nombre }}</label>
+        <select id="rol-{{ a.id }}" name="rol" data-autoenviar>{% for k, t in ROLES.items() %}<option value="{{ k }}" {% if a.rol == k %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+        <noscript><button class="btn btn-chico btn-secundario" type="submit">Cambiar</button></noscript></form></td>
+      <td class="acciones-tabla">{% if a.activo %}{{ enlace_post(url_for('admin_core.usuario_activo', aid=a.id), 'Desactivar', '¿Desactivar a ' ~ a.nombre ~ '?', {'activo': '0'}, 'enlace-boton enlace-peligro') }}
+        {% else %}{{ enlace_post(url_for('admin_core.usuario_activo', aid=a.id), 'Activar', none, {'activo': '1'}) }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <form method="post" class="tarjeta" novalidate>
+    <h2>Registrar administrador</h2>{{ csrf() }}
+    {{ field('nombre', 'Nombre completo', f) }}
+    {{ field('cedula', 'Cédula', f, inputmode='numeric') }}
+    {{ field('correo', 'Correo electrónico', f, type='email') }}
+    <div class="campo"><label for="rol">Rol asignado</label>
+      <select id="rol" name="rol" required>{% for k, t in ROLES.items() %}<option value="{{ k }}" {% if f['rol'] == k %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+    {{ field('password', 'Contraseña', none, type='password', autocomplete='new-password', hint='Mínimo 8 caracteres, con letras y números.') }}
+    <button class="btn btn-primario btn-bloque" type="submit">Registrar administrador</button>
+  </form>
+</div>
+{% endblock %}

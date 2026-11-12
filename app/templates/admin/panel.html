@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge_reserva %}
+{% block titulo %}Panel administrativo{% endblock %}
+{% block contenido %}
+<h1>Panel administrativo</h1>
+<div class="rejilla">
+  <section class="tarjeta"><p class="dato-etiqueta">Socios activos</p><p class="dato">{{ d.socios_activos }}</p><p class="dato-pie">{{ d.membresias_activas }} membresías activas</p></section>
+  <section class="tarjeta"><p class="dato-etiqueta">Reservas de hoy</p><p class="dato">{{ d.reservas_hoy }}</p><p class="dato-pie">{{ d.reservas_pendientes }} por confirmar</p></section>
+  <section class="tarjeta"><p class="dato-etiqueta">Invitados hoy</p><p class="dato">{{ d.invitados_hoy }}</p>
+    {% if puede(g.admin.rol, 'invitados') %}<p class="dato-pie"><a href="{{ url_for('admin_ops.invitados_esperados') }}">Ver listado</a></p>{% endif %}</section>
+  <section class="tarjeta"><p class="dato-etiqueta">Socios morosos</p><p class="dato {{ 'dato-alerta' if d.morosos else '' }}">{{ d.morosos }}</p>
+    {% if puede(g.admin.rol, 'cuentas') %}<p class="dato-pie"><a href="{{ url_for('admin_cobros.morosos') }}">Ver morosos</a></p>{% endif %}</section>
+</div>
+{% if puede(g.admin.rol, 'reservas') %}
+<h2>Reservas de hoy</h2>
+{% if hoy_reservas %}
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Horario</th><th scope="col">Instalación</th><th scope="col">Socio</th><th scope="col">Personas</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead>
+  <tbody>{% for r in hoy_reservas %}<tr><td>{{ r.hora_inicio }} – {{ r.hora_fin }}</td><td>{{ r.instalacion }}</td><td>{{ r.socio_nombre }}</td><td>{{ r.personas }}</td><td>{{ badge_reserva(r.estado) }}</td>
+    <td class="acciones-tabla"><a href="{{ url_for('admin_ops.reserva_detalle', rid=r.id) }}">Ver</a></td></tr>{% endfor %}</tbody>
+</table></div>
+{% else %}<p class="vacio">No hay reservas para hoy.</p>{% endif %}
+{% endif %}
+{% if puede(g.admin.rol, 'cuentas') or g.admin.rol == 'general' %}
+<form method="post" action="{{ url_for('admin_cobros.ejecutar_tareas') }}" class="acciones">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <button class="btn btn-secundario" type="submit" data-confirmar="¿Ejecutar las tareas diarias (vencimientos, finalización de reservas y avisos de pago)?">Ejecutar tareas diarias</button>
+</form>
+{% endif %}
+{% endblock %}

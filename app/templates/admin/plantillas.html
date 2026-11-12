@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block titulo %}Plantillas de notificación{% endblock %}
+{% block contenido %}
+<h1>Plantillas de notificación</h1>
+<p>Los correos automáticos usan estas plantillas. Puede editar el asunto y el texto usando las variables indicadas entre llaves, por ejemplo <code>{nombre}</code>.</p>
+<div class="tabla-envoltura"><table>
+  <caption class="sr-only">Plantillas</caption>
+  <thead><tr><th scope="col">Plantilla</th><th scope="col">Asunto</th><th scope="col">Estado</th><th scope="col">Actualizada</th><th scope="col"><span class="sr-only">Acción</span></th></tr></thead>
+  <tbody>{% for p in lista %}<tr><td>{{ p.nombre }}</td><td>{{ p.asunto }}</td><td>{{ badge('activo' if p.activa else 'desactivado') }}</td><td>{{ p.actualizado_en|fechahora }}</td>
+    <td><a href="{{ url_for('admin_core.plantilla_editar', codigo=p.codigo) }}">Editar<span class="sr-only"> {{ p.nombre }}</span></a></td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

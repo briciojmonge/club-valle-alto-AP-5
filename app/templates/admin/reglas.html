@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Reglas del club{% endblock %}
+{% block contenido %}
+<h1>Reglas operativas del club</h1>
+<p class="mensaje mensaje-error" role="note">Los valores iniciales son <strong>supuestos de trabajo</strong>. Deben ser definidos y validados por la Gerencia del Club (entregable 1.2.1) antes de la puesta en producción.</p>
+<form method="post" class="formulario" novalidate>
+  {{ csrf() }}
+  <section class="tarjeta" aria-labelledby="t-t"><h2 id="t-t">Tipos de membresía</h2>
+    <div class="tabla-envoltura"><table>
+      <thead><tr><th scope="col">Tipo</th><th scope="col">Cuota mensual</th><th scope="col">Invitados por mes</th><th scope="col">Máx. beneficiarios</th></tr></thead>
+      <tbody>{% for t in tipos %}<tr><th scope="row">{{ t.tipo|capitalize }}</th>
+        <td><label class="sr-only" for="cuota_{{ t.tipo }}">Cuota {{ t.tipo }}</label><input id="cuota_{{ t.tipo }}" name="cuota_{{ t.tipo }}" type="number" step="0.01" min="0" value="{{ t.cuota_mensual }}" required></td>
+        <td><label class="sr-only" for="invitados_{{ t.tipo }}">Invitados por mes {{ t.tipo }}</label><input id="invitados_{{ t.tipo }}" name="invitados_{{ t.tipo }}" type="number" min="0" value="{{ t.limite_invitados_mes }}" required></td>
+        <td><label class="sr-only" for="benef_{{ t.tipo }}">Máximo de beneficiarios {{ t.tipo }}</label><input id="benef_{{ t.tipo }}" name="benef_{{ t.tipo }}" type="number" min="0" value="{{ t.max_beneficiarios }}" required></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+  <section class="tarjeta" aria-labelledby="t-p"><h2 id="t-p">Parámetros generales</h2>
+    {% for clave in ['moneda','dias_plazo_pago','dias_aviso_vencimiento','dias_anticipacion_max','dias_renovacion','max_intentos_login','minutos_bloqueo'] %}
+    <div class="campo"><label for="{{ clave }}">{{ params[clave].descripcion }}</label>
+      <input id="{{ clave }}" name="{{ clave }}" type="{{ 'text' if clave == 'moneda' else 'number' }}" {% if clave != 'moneda' %}min="0"{% endif %} value="{{ params[clave].valor }}" required></div>
+    {% endfor %}
+    <div class="campo"><label for="reserva_autoconfirmar">{{ params['reserva_autoconfirmar'].descripcion }}</label>
+      <select id="reserva_autoconfirmar" name="reserva_autoconfirmar">
+        <option value="1" {% if params['reserva_autoconfirmar'].valor == '1' %}selected{% endif %}>Confirmar de inmediato</option>
+        <option value="0" {% if params['reserva_autoconfirmar'].valor != '1' %}selected{% endif %}>Dejar pendiente hasta que el personal confirme</option>
+      </select></div>
+  </section>
+  <button class="btn btn-primario" type="submit">Guardar reglas</button>
+</form>
+{% endblock %}
