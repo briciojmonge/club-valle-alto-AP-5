@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge, abrir_modal %}
+{% block titulo %}{{ s.nombre }}{% endblock %}
+{% block contenido %}
+<div class="encabezado-titulo"><h1>{{ s.nombre }}</h1>{{ badge(s.estado) }}</div>
+<div class="rejilla-2">
+  <section class="tarjeta" aria-labelledby="t-s"><h2 id="t-s">Datos del socio</h2>
+    <dl class="detalle">
+      <dt>Nombre</dt><dd>{{ s.nombre }}</dd><dt>Cédula</dt><dd>{{ s.cedula }}</dd>
+      <dt>Correo</dt><dd>{{ s.correo }}</dd><dt>Teléfono</dt><dd>{{ s.telefono }}</dd>
+      <dt>Dirección</dt><dd>{{ s.direccion }}</dd><dt>Nacimiento</dt><dd>{{ s.fecha_nacimiento|fecha }}</dd>
+    </dl></section>
+  <section class="tarjeta" aria-labelledby="t-m"><h2 id="t-m">Membresía actual</h2>
+    {% if m %}<dl class="detalle">
+      <dt>Tipo</dt><dd>{{ m.tipo|capitalize }}</dd><dt>Estado</dt><dd>{{ badge(m.estado) }}</dd>
+      <dt>Inscripción</dt><dd>{{ m.fecha_inscripcion|fecha }}</dd><dt>Renovación</dt><dd>{{ m.fecha_renovacion|fecha }}</dd>
+      <dt>Cuota</dt><dd>{{ m.cuota|dinero }}</dd></dl>
+    {% else %}<p class="vacio">El socio no tiene una membresía vigente.</p>
+      {% if puede_membresias %}<a class="btn btn-primario" href="{{ url_for('admin_cobros.membresia_nueva', socio_id=s.id) }}">Registrar membresía</a>{% endif %}{% endif %}
+  </section>
+</div>
+<div class="acciones">
+  {% if m and puede_membresias %}
+    <a class="btn btn-secundario" href="{{ url_for('admin_cobros.membresia_detalle', mid=m.id) }}">Modificar</a>
+    {% if m.estado == 'suspendida' %}{{ abrir_modal('m-estado', 'Reactivar', 'btn btn-secundario') }}{% elif m.estado != 'baja' %}{{ abrir_modal('m-estado', 'Suspender', 'btn btn-secundario') }}{% endif %}
+    {% if m.estado != 'baja' %}{{ abrir_modal('m-baja', 'Dar de baja', 'btn btn-peligro') }}{% endif %}
+  {% endif %}
+  <form method="post" action="{{ url_for('admin_core.socio_password', sid=s.id) }}" class="en-linea">{{ csrf() }}
+    <button class="btn btn-secundario" type="submit" data-confirmar="¿Generar una contraseña temporal para {{ s.nombre }}?">Restablecer contraseña</button></form>
+</div>
+{% if m and puede_membresias %}
+<dialog class="modal" id="m-estado" aria-label="Cambiar estado de la membresía">
+  <form method="post" action="{{ url_for('admin_cobros.membresia_estado', mid=m.id) }}">
+    <h2>{{ 'Reactivar' if m.estado == 'suspendida' else 'Suspender' }} membresía</h2>{{ csrf() }}
+    <input type="hidden" name="estado" value="{{ 'activa' if m.estado == 'suspendida' else 'suspendida' }}">
+    <div class="campo"><label for="motivo-e">Motivo</label><input id="motivo-e" name="motivo" type="text" required maxlength="200"></div>
+    <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Confirmar</button></div>
+  </form>
+</dialog>
+<dialog class="modal" id="m-baja" aria-label="Dar de baja la membresía">
+  <form method="post" action="{{ url_for('admin_cobros.membresia_estado', mid=m.id) }}">
+    <h2>Dar de baja la membresía</h2>{{ csrf() }}
+    <input type="hidden" name="estado" value="baja">
+    <p>La membresía de <strong>{{ s.nombre }}</strong> quedará en baja y el socio no podrá reservar ni registrar invitados.</p>
+    <div class="campo"><label for="motivo-b">Motivo</label><input id="motivo-b" name="motivo" type="text" required maxlength="200"></div>
+    <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="submit">Dar de baja</button></div>
+  </form>
+</dialog>
+{% endif %}
+<h2>Historial de cambios de estado</h2>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Fecha</th><th scope="col">Cambio</th><th scope="col">Realizado por</th></tr></thead>
+  <tbody>{% for h in historial %}<tr><td>{{ h.fecha|fecha }}</td>
+    <td>{% if h.estado_anterior is none %}Membresía creada · {{ h.estado_nuevo|capitalize }}{% elif h.estado_anterior == h.estado_nuevo %}{{ h.motivo }}{% else %}{{ h.estado_anterior|capitalize }} → {{ h.estado_nuevo|capitalize }}{% endif %}</td>
+    <td>{{ h.actor_nombre }}</td></tr>
+  {% else %}<tr><td colspan="3" class="vacio">Sin cambios registrados.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

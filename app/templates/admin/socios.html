@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, enlace_post %}
+{% block titulo %}Socios{% endblock %}
+{% block contenido %}
+<h1>Socios</h1>
+<form method="get" class="filtros">
+  <div class="campo"><label for="q">Buscar socio</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="Nombre o cédula"></div>
+  <div class="campo"><label for="estado">Estado</label>
+    <select id="estado" name="estado">
+      <option value="">Todos</option>
+      {% for v, t in (('activo','Activa'),('suspendido','Suspendida'),('desactivado','Inactiva')) %}<option value="{{ v }}" {% if estado == v %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-secundario" type="submit">Buscar</button>
+</form>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Nombre</th><th scope="col">Cédula</th><th scope="col">Membresía</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+  <tbody>
+  {% for s in lista %}<tr><td>{{ s.nombre }}</td><td>{{ s.cedula }}</td><td>{{ s.membresia_tipo|capitalize if s.membresia_tipo else '—' }}</td><td>{{ badge(s.estado) }}</td>
+    <td class="acciones-tabla"><a href="{{ url_for('admin_core.socio_detalle', sid=s.id) }}">Ver</a>
+      {% if s.estado == 'activo' %}{{ enlace_post(url_for('admin_core.socio_estado', sid=s.id), 'Suspender', '¿Suspender la cuenta de ' ~ s.nombre ~ '?', {'estado': 'suspendido'}) }}
+      {% else %}{{ enlace_post(url_for('admin_core.socio_estado', sid=s.id), 'Activar', none, {'estado': 'activo'}) }}{% endif %}
+      {{ enlace_post(url_for('admin_core.socio_password', sid=s.id), 'Restablecer contraseña', '¿Generar una contraseña temporal para ' ~ s.nombre ~ '?') }}</td></tr>
+  {% else %}<tr><td colspan="5" class="vacio">No se encontraron socios.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

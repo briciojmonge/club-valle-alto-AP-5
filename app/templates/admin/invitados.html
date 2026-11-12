@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Invitados del día{% endblock %}
+{% block contenido %}
+<div class="encabezado-seccion"><h1>Invitados del día</h1><button class="btn btn-secundario" type="button" data-imprimir>Imprimir</button></div>
+<form method="get" class="filtros">
+  <div class="campo"><label for="fecha">Fecha</label><input id="fecha" type="date" name="fecha" value="{{ fecha }}" data-autoenviar-input></div>
+  <div class="campo"><label for="instalacion_id">Instalación</label>
+    <select id="instalacion_id" name="instalacion_id" data-autoenviar><option value="">Todas</option>{% for i in instalaciones %}<option value="{{ i.id }}" {% if iid == i.id %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select></div>
+  <button class="btn btn-secundario" type="submit">Ver</button>
+  <section class="tarjeta" aria-label="Total de invitados esperados"><p class="dato-etiqueta">Invitados esperados</p><p class="dato">{{ lista|length }}</p></section>
+</form>
+<div class="tabla-envoltura"><table>
+  <thead><tr><th scope="col">Invitado</th><th scope="col">Cédula</th><th scope="col">Socio anfitrión</th><th scope="col">Instalación</th><th scope="col">Relación</th></tr></thead>
+  <tbody>{% for i in lista %}<tr><td>{{ i.nombre }}</td><td>{{ i.cedula }}</td><td>{{ i.socio_nombre }}</td><td>{{ i.instalacion }}</td><td>{{ i.relacion|capitalize }}</td></tr>
+  {% else %}<tr><td colspan="5" class="vacio">No hay invitados esperados para esta fecha.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

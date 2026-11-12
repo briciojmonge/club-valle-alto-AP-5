@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Contraseña temporal{% endblock %}
+{% block contenido %}
+<h1>Contraseña temporal generada</h1>
+<div class="caja-aviso" role="alert">
+  <p>Entregue esta contraseña a <strong>{{ s.nombre }}</strong> por un medio seguro. <strong>No volverá a mostrarse.</strong>
+     El socio deberá cambiarla en su próximo ingreso.</p>
+  <p class="temporal"><code>{{ temporal }}</code></p>
+</div>
+<p class="acciones"><a class="btn btn-secundario" href="{{ url_for('admin_core.socio_detalle', sid=s.id) }}">Volver al socio</a></p>
+{% endblock %}
