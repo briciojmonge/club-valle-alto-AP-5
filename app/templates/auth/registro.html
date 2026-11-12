@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}Registro de socio{% endblock %}
+{% block contenido %}
+<div class="tarjeta">
+<h1>Registro de socio</h1>
+<p class="subtitulo">Cree su cuenta para consultar su información, reservar instalaciones y revisar su estado de cuenta.</p>
+<form method="post" novalidate>
+  {{ csrf() }}
+  {{ field('nombre', 'Nombre completo', f, autocomplete='name', maxlength=120) }}
+  <div class="fila-campos">
+    {{ field('cedula', 'Cédula', f, hint='9 a 12 dígitos, con o sin guiones.', inputmode='numeric') }}
+    {{ field('fecha_nacimiento', 'Fecha de nacimiento', f, type='date', autocomplete='bday') }}
+  </div>
+  {{ field('correo', 'Correo electrónico', f, type='email', autocomplete='email') }}
+  {{ field('telefono', 'Teléfono', f, type='tel', autocomplete='tel', hint='Solo números; puede incluir el código de país con +.') }}
+  {{ field('direccion', 'Dirección', f, autocomplete='street-address', maxlength=250) }}
+  <div class="fila-campos">
+    {{ field('password', 'Contraseña', none, type='password', autocomplete='new-password', hint='Mínimo 8 caracteres, con letras y números.') }}
+    {{ field('password2', 'Confirmar contraseña', none, type='password', autocomplete='new-password') }}
+  </div>
+  <button class="btn btn-primario btn-bloque" type="submit">Crear cuenta</button>
+  <div class="enlaces-auth"><a href="{{ url_for('auth.login') }}">Ya tengo cuenta</a></div>
+</form>
+</div>
+{% endblock %}

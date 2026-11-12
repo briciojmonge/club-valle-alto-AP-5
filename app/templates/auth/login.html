@@ -1,0 +1,17 @@
+{% extends "acceso.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}{{ 'Acceso del personal' if admin else 'Iniciar sesión' }}{% endblock %}
+{% block acceso_titulo %}{{ 'Acceso del personal' if admin else 'Iniciar sesión' }}{% endblock %}
+{% block acceso_sub %}{{ 'Ingrese con su cuenta administrativa' if admin else 'Ingrese con su cuenta de socio' }}{% endblock %}
+{% block acceso_cuerpo %}
+<form method="post" novalidate>
+  {{ csrf() }}
+  {{ field('correo', 'Correo electrónico', f, type='email', autocomplete='username') }}
+  {{ field('password', 'Contraseña', none, type='password', autocomplete='current-password') }}
+  <button class="btn btn-primario btn-bloque" type="submit">Iniciar sesión</button>
+  {% if not admin %}
+  <div class="enlaces-auth"><a href="{{ url_for('auth.recuperar') }}">¿Olvidó su contraseña?</a><a href="{{ url_for('auth.registro') }}">Crear cuenta</a></div>
+  {% endif %}
+</form>
+{% endblock %}
+{% block acceso_pie %}<a class="acceso-pie" href="{{ url_for('auth.login') if admin else url_for('auth.admin_login') }}">{{ 'Acceso socios' if admin else 'Acceso administración' }}</a>{% endblock %}

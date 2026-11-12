@@ -1,0 +1,13 @@
+{% extends "acceso.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}Recuperar contraseña{% endblock %}
+{% block acceso_titulo %}Recuperar contraseña{% endblock %}
+{% block acceso_sub %}Le enviaremos un enlace a su correo para crear una contraseña nueva.{% endblock %}
+{% block acceso_cuerpo %}
+<form method="post" novalidate>
+  {{ csrf() }}
+  {{ field('correo', 'Correo electrónico', none, type='email', autocomplete='email') }}
+  <button class="btn btn-primario btn-bloque" type="submit">Enviar enlace</button>
+  <div class="enlaces-auth"><a href="{{ url_for('auth.login') }}">Volver a iniciar sesión</a></div>
+</form>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "acceso.html" %}
+{% from "_macros.html" import csrf, field %}
+{% block titulo %}Nueva contraseña{% endblock %}
+{% block acceso_titulo %}Nueva contraseña{% endblock %}
+{% block acceso_sub %}Elija una contraseña segura para su cuenta.{% endblock %}
+{% block acceso_cuerpo %}
+<form method="post" novalidate>
+  {{ csrf() }}
+  {{ field('password', 'Nueva contraseña', none, type='password', autocomplete='new-password', hint='Mínimo 8 caracteres, con letras y números.') }}
+  {{ field('password2', 'Confirmar contraseña', none, type='password', autocomplete='new-password') }}
+  <button class="btn btn-primario btn-bloque" type="submit">Guardar contraseña</button>
+</form>
+{% endblock %}
