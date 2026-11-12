@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Reporte de uso de instalaciones{% endblock %}
+{% block contenido %}
+<h1>Reporte de uso de instalaciones</h1>
+<form method="get" class="filtros">
+  <div class="campo"><label for="desde">Desde</label><input id="desde" type="date" name="desde" value="{{ desde }}" required></div>
+  <div class="campo"><label for="hasta">Hasta</label><input id="hasta" type="date" name="hasta" value="{{ hasta }}" required></div>
+  <button class="btn btn-primario" type="submit">Generar reporte</button>
+  <button class="btn btn-secundario" type="button" data-imprimir>Imprimir</button>
+</form>
+<p>Periodo: {{ desde|fecha }} al {{ hasta|fecha }}. Se cuentan las reservas confirmadas y finalizadas.</p>
+{% if mayor or menor %}
+<div class="rejilla">
+  {% if mayor %}<section class="tarjeta" aria-labelledby="k-may"><h2 id="k-may" class="dato-etiqueta">Mayor demanda</h2><p class="dato">{{ mayor.instalacion }}</p><p>{{ mayor.reservas }} reserva(s) · {{ mayor.horas }} h</p></section>{% endif %}
+  {% if menor and (not mayor or menor.instalacion != mayor.instalacion) %}<section class="tarjeta" aria-labelledby="k-men"><h2 id="k-men" class="dato-etiqueta">Menor demanda</h2><p class="dato">{{ menor.instalacion }}</p><p>{{ menor.reservas }} reserva(s) · {{ menor.horas }} h</p></section>{% endif %}
+</div>
+{% endif %}
+<div class="tabla-envoltura"><table>
+  <caption class="sr-only">Uso por instalación, ordenado de mayor a menor demanda</caption>
+  <thead><tr><th scope="col">N.º</th><th scope="col">Instalación</th><th scope="col" class="num">Reservas</th><th scope="col" class="num">Horas reservadas</th><th scope="col" class="num">Personas</th><th scope="col" class="num">Canceladas</th></tr></thead>
+  <tbody>{% for f in filas %}<tr><td>{{ f.ranking }}</td><td>{{ f.instalacion }}</td><td class="num">{{ f.reservas }}</td><td class="num">{{ f.horas }}</td><td class="num">{{ f.personas }}</td><td class="num">{{ f.canceladas }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, select, badge %}
+{% block titulo %}{{ inst.nombre }}{% endblock %}
+{% block contenido %}
+<p><a href="{{ url_for('admin_ops.instalaciones') }}">← Volver a las instalaciones</a></p>
+<h1>{{ inst.nombre }}</h1>
+<form method="post" class="formulario tarjeta" novalidate>
+  <h2>Datos, horario y aforo</h2>{{ csrf() }}
+  {{ field('nombre', 'Nombre', f) }}
+  <div class="fila-campos">{{ select('tipo', 'Tipo', tipos.items()|list, f) }}{{ select('modo', 'Modo de reserva', modos.items()|list, f,
+        hint='Exclusiva: una reserva por franja. Compartida: se suman personas hasta el aforo.') }}</div>
+  <div class="fila-campos">{{ field('hora_apertura', 'Hora de apertura', f, type='time') }}{{ field('hora_cierre', 'Hora de cierre', f, type='time') }}</div>
+  {{ field('aforo_max', 'Aforo máximo (personas)', f, type='number', min=1) }}
+  {{ field('descripcion', 'Descripción', f, required=false, maxlength=300) }}
+  <label class="check"><input type="checkbox" name="activa" value="1" {% if f['activa']|string in ['1','True','on'] %}checked{% endif %}> Instalación activa (disponible para reservas)</label>
+  <div class="acciones"><button class="btn btn-primario" type="submit">Guardar cambios</button></div>
+</form>
+
+<section aria-labelledby="t-s"><h2 id="t-s">Servicios adicionales</h2>
+  {% if servicios %}<div class="tabla-envoltura"><table>
+    <thead><tr><th scope="col">Servicio</th><th scope="col" class="num">Costo</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acción</span></th></tr></thead>
+    <tbody>{% for s in servicios %}<tr><td>{{ s.nombre }}</td><td class="num">{{ s.costo|dinero }}</td><td>{{ badge('activo' if s.activo else 'desactivado') }}</td>
+      <td><form method="post" action="{{ url_for('admin_ops.servicio_estado', iid=inst.id, sid=s.id) }}" class="en-linea">{{ csrf() }}
+        <input type="hidden" name="activo" value="{{ 0 if s.activo else 1 }}"><button class="btn btn-secundario btn-chico" type="submit">{{ 'Desactivar' if s.activo else 'Activar' }}</button></form></td></tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p class="vacio">Sin servicios adicionales.</p>{% endif %}
+  <form method="post" action="{{ url_for('admin_ops.servicio_nuevo', iid=inst.id) }}" class="formulario tarjeta" novalidate>
+    <h3>Agregar servicio</h3>{{ csrf() }}
+    <div class="fila-campos">{{ field('nombre', 'Nombre del servicio', none, idp='srv-') }}{{ field('costo', 'Costo', none, type='number', min=0, step='0.01', idp='srv-') }}</div>
+    <button class="btn btn-secundario" type="submit">Agregar servicio</button>
+  </form>
+</section>
+
+<section aria-labelledby="t-b"><h2 id="t-b">Bloqueos por mantenimiento o eventos privados</h2>
+  {% if bloqueos %}<div class="tabla-envoltura"><table>
+    <thead><tr><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Motivo</th><th scope="col"><span class="sr-only">Acción</span></th></tr></thead>
+    <tbody>{% for b in bloqueos %}<tr><td>{{ b.fecha|fecha }}</td><td>{{ b.hora_inicio }}–{{ b.hora_fin }}</td><td>{{ b.motivo }}</td>
+      <td><form method="post" action="{{ url_for('admin_ops.bloqueo_eliminar', iid=inst.id, bid=b.id) }}" class="en-linea">{{ csrf() }}
+        <button class="btn btn-peligro btn-chico" type="submit" data-confirmar="¿Eliminar este bloqueo?">Eliminar</button></form></td></tr>{% endfor %}</tbody>
+  </table></div>{% else %}<p class="vacio">No hay bloqueos próximos.</p>{% endif %}
+  <form method="post" action="{{ url_for('admin_ops.bloqueo_nuevo', iid=inst.id) }}" class="formulario tarjeta" novalidate>
+    <h3>Bloquear la instalación</h3>{{ csrf() }}
+    {{ field('fecha', 'Fecha', none, type='date', min=hoy().isoformat()) }}
+    <div class="fila-campos">{{ field('hora_inicio', 'Hora de inicio', none, type='time') }}{{ field('hora_fin', 'Hora de fin', none, type='time') }}</div>
+    {{ field('motivo', 'Motivo', none, hint='Ej.: mantenimiento de la cancha, evento privado.') }}
+    <p class="ayuda">Si ya existen reservas en ese horario, el sistema no permite el bloqueo hasta que se cancelen o modifiquen.</p>
+    <button class="btn btn-secundario" type="submit">Bloquear</button>
+  </form>
+</section>
+{% endblock %}

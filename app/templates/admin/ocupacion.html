@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Ocupación y reportes{% endblock %}
+{% block contenido %}
+<h1>Ocupación y reportes</h1>
+<form method="get" class="filtros">
+  <div class="campo"><label for="periodo">Periodo</label>
+    <select id="periodo" name="periodo">{% for p in periodos %}<option value="{{ p }}" {% if p == periodo %}selected{% endif %}>{{ p|periodo_nombre }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="instalacion_id">Instalación</label>
+    <select id="instalacion_id" name="instalacion_id">{% for i in insts %}<option value="{{ i.id }}" {% if inst and i.id == inst.id %}selected{% endif %}>{{ i.nombre }}</option>{% endfor %}</select></div>
+  <button class="btn btn-primario" type="submit">Generar reporte</button>
+  <button class="btn btn-secundario" type="button" data-imprimir>Imprimir</button>
+</form>
+<div class="rejilla-2">
+  <section class="tarjeta" aria-labelledby="t-o">
+    <h2 id="t-o">Ocupación de hoy por franja{% if inst %} · {{ inst.nombre }}{% endif %}</h2>
+    <ul class="barras">
+      {% for b in bandas %}<li><span>{{ b.inicio }} – {{ b.fin }}</span><progress max="100" value="{{ b.pct }}" aria-label="Ocupación {{ b.inicio }} a {{ b.fin }}">{{ b.pct }}%</progress><span class="valor">{{ b.pct }}%</span></li>
+      {% else %}<li class="vacio">Sin franjas para mostrar.</li>{% endfor %}
+    </ul>
+    <label class="check"><input type="checkbox" id="auto-actualizar"> Actualizar automáticamente cada minuto</label>
+  </section>
+  <section class="tarjeta" aria-labelledby="t-d">
+    <h2 id="t-d">Demanda por instalación</h2>
+    <ul class="barras">
+      {% for f in filas %}<li><span>{{ f.instalacion }}</span><progress max="{{ maximo if maximo else 1 }}" value="{{ f.reservas }}" {% if loop.first and f.reservas %}class="destacada"{% endif %} aria-label="{{ f.instalacion }}: {{ f.reservas }} reservas">{{ f.reservas }}</progress><span class="valor">{{ f.reservas }} reservas</span></li>{% endfor %}
+    </ul>
+    <div class="demanda-pie">
+      {% if mayor %}<p><strong>Mayor demanda: {{ mayor.instalacion }}</strong></p>{% endif %}
+      {% if menor %}<p class="nota">Menor demanda: {{ menor.instalacion }}</p>{% endif %}
+      <p class="nota"><a href="{{ url_for('admin_ops.reporte_uso', desde=periodo ~ '-01') }}">Ver reporte detallado de uso</a></p>
+    </div>
+  </section>
+</div>
+{% endblock %}

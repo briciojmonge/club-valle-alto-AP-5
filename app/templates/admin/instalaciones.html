@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, field, select, badge, abrir_modal %}
+{% block titulo %}Instalaciones{% endblock %}
+{% block contenido %}
+<div class="encabezado-seccion"><h1>Instalaciones</h1>{{ abrir_modal('m-inst-nueva', 'Nueva instalación', 'btn btn-secundario') }}</div>
+<div class="rejilla-2">
+  {% for i in lista %}
+  <section class="tarjeta" aria-labelledby="i-{{ i.id }}">
+    <div class="encabezado-titulo"><h2 id="i-{{ i.id }}">{{ i.nombre }}</h2>{% if not i.activa %}{{ badge('desactivado') }}{% endif %}</div>
+    <dl class="detalle">
+      <dt>Horario</dt><dd>{{ i.hora_apertura }} – {{ i.hora_cierre }}</dd>
+      <dt>Aforo máximo</dt><dd>{{ i.aforo_max }} personas</dd>
+      <dt>Servicios</dt><dd>{% for s in servicios[i.id] %}{{ s.nombre }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</dd>
+    </dl>
+    <div class="acciones">
+      <a class="btn btn-secundario" href="{{ url_for('admin_ops.instalacion_editar', iid=i.id) }}">Editar<span class="sr-only"> {{ i.nombre }}</span></a>
+      {{ abrir_modal('m-bloq-' ~ i.id, 'Bloquear', 'btn btn-secundario') }}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+{% for i in lista %}
+<dialog class="modal" id="m-bloq-{{ i.id }}" aria-label="Bloquear instalación">
+  <form method="post" action="{{ url_for('admin_ops.bloqueo_nuevo', iid=i.id) }}" novalidate>
+    <h2>Bloquear instalación</h2>{{ csrf() }}<input type="hidden" name="volver" value="lista">
+    <div class="campo"><label for="bi-{{ i.id }}">Instalación</label><input id="bi-{{ i.id }}" type="text" value="{{ i.nombre }}" readonly></div>
+    <div class="campo"><label for="bf-{{ i.id }}">Fecha</label><input id="bf-{{ i.id }}" name="fecha" type="date" min="{{ hoy_iso }}" required></div>
+    <div class="fila-campos">
+      <div class="campo"><label for="bd-{{ i.id }}">Desde</label><input id="bd-{{ i.id }}" name="hora_inicio" type="time" value="{{ i.hora_apertura }}" required></div>
+      <div class="campo"><label for="bh-{{ i.id }}">Hasta</label><input id="bh-{{ i.id }}" name="hora_fin" type="time" value="{{ i.hora_cierre }}" required></div>
+    </div>
+    <div class="campo"><label for="bm-{{ i.id }}">Motivo</label>
+      <select id="bm-{{ i.id }}" name="motivo" required>
+        {% for m in ('Mantenimiento', 'Evento privado', 'Condiciones climáticas', 'Otro motivo') %}<option>{{ m }}</option>{% endfor %}</select></div>
+    <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Bloquear</button></div>
+  </form>
+</dialog>
+{% endfor %}
+
+<dialog class="modal" id="m-inst-nueva" aria-label="Nueva instalación">
+  <form method="post" novalidate>
+    <h2>Nueva instalación</h2>{{ csrf() }}
+    {{ field('nombre', 'Nombre', f) }}
+    <div class="fila-campos">{{ select('tipo', 'Tipo', tipos.items()|list, f) }}{{ select('modo', 'Modo de reserva', modos.items()|list, f) }}</div>
+    <div class="fila-campos">{{ field('hora_apertura', 'Hora de apertura', f, type='time') }}{{ field('hora_cierre', 'Hora de cierre', f, type='time') }}</div>
+    {{ field('aforo_max', 'Aforo máximo (personas)', f, type='number', min=1) }}
+    {{ field('descripcion', 'Descripción', f, required=false, maxlength=300) }}
+    <div class="acciones"><button type="button" class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" type="submit">Crear instalación</button></div>
+  </form>
+</dialog>
+{% endblock %}
