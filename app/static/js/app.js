@@ -39,16 +39,16 @@
     }
   });
 
-  // Actualización automática de la página de ocupación en tiempo real (cada 60 s si se activa).
+  // Actualización automática de la página de ocupación en tiempo real (cada 10 s mientras esté activa).
   var auto = document.getElementById("auto-actualizar");
   if (auto) {
     var temporizador = null;
     var aplicar = function () {
       if (temporizador) { clearInterval(temporizador); temporizador = null; }
       try { window.localStorage.setItem("cva-auto", auto.checked ? "1" : "0"); } catch (e) { /* sin almacenamiento */ }
-      if (auto.checked) { temporizador = setInterval(function () { window.location.reload(); }, 60000); }
+      if (auto.checked) { temporizador = setInterval(function () { window.location.reload(); }, 10000); }
     };
-    try { auto.checked = window.localStorage.getItem("cva-auto") === "1"; } catch (e) { /* sin almacenamiento */ }
+    try { auto.checked = window.localStorage.getItem("cva-auto") !== "0"; } catch (e) { /* sin almacenamiento */ }
     auto.addEventListener("change", aplicar);
     aplicar();
   }

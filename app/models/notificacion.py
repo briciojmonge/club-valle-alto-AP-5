@@ -49,6 +49,11 @@ def notificar(socio, codigo, datos):
         estado, detalle = "omitido", "Plantilla desactivada por un administrador."
     else:
         estado, detalle = enviar_correo(socio["correo"], asunto, cuerpo)
+    if codigo == "recuperar_password":
+        datos["enlace"] = "[enlace reservado para el destinatario]"
+        asunto = render(p["asunto"], datos)
+        cuerpo = render(p["cuerpo"], datos)
+        detalle = "Resultado del envío: " + estado
     return execute(
         "INSERT INTO notificaciones(socio_id, codigo, destinatario, asunto, cuerpo, estado, detalle, creado_en) "
         "VALUES (?,?,?,?,?,?,?,?)",

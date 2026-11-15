@@ -1,6 +1,7 @@
 """Acceso a datos (SQLite). Capa mínima compartida por todos los modelos."""
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 from flask import current_app, g
@@ -43,6 +44,10 @@ def init_db():
     schema = os.path.join(os.path.dirname(__file__), "schema.sql")
     with open(schema, encoding="utf-8") as f:
         db.executescript(f.read())
+    db.execute("UPDATE tipos_membresia SET autoservicio=1 WHERE tipo='honoraria' AND autoservicio=0")
+    db.execute("UPDATE notificaciones SET asunto='Recuperación de contraseña', "
+               "cuerpo='[enlace reservado para el destinatario]', detalle=NULL "
+               "WHERE codigo='recuperar_password' AND instr(cuerpo, '[enlace reservado para el destinatario]')=0")
     db.commit()
 
 
@@ -58,8 +63,22 @@ def execute(sql, args=()):
     """Ejecuta y confirma. Devuelve el id insertado."""
     db = get_db()
     cur = db.execute(sql, args)
-    db.commit()
+    if not g.get("transaccion_escritura"):
+        db.commit()
     return cur.lastrowid
+
+
+@contextmanager
+def transaccion_escritura():
+    """Reserva el turno de escritura antes de consultar disponibilidad."""
+    db = get_db()
+    db.execute("BEGIN IMMEDIATE")
+    g.transaccion_escritura = True
+    try:
+        with db:
+            yield
+    finally:
+        g.pop("transaccion_escritura", None)
 
 
 class ReglaError(Exception):

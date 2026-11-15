@@ -17,7 +17,7 @@
       {% for b in bandas %}<li><span>{{ b.inicio }} – {{ b.fin }}</span><progress max="100" value="{{ b.pct }}" aria-label="Ocupación {{ b.inicio }} a {{ b.fin }}">{{ b.pct }}%</progress><span class="valor">{{ b.pct }}%</span></li>
       {% else %}<li class="vacio">Sin franjas para mostrar.</li>{% endfor %}
     </ul>
-    <label class="check"><input type="checkbox" id="auto-actualizar"> Actualizar automáticamente cada minuto</label>
+    <label class="check"><input type="checkbox" id="auto-actualizar" checked> Actualizar automáticamente cada 10 segundos</label>
   </section>
   <section class="tarjeta" aria-labelledby="t-d">
     <h2 id="t-d">Demanda por instalación</h2>

@@ -52,11 +52,27 @@ def test_registro_duplicado_y_password_debil(ctx):
         socio.registrar(form(**{**base, "cedula": "999000112", "correo": "otro@example.test", "password": "abc", "password2": "abc"}))
 
 
-def test_recuperacion_por_enlace_un_solo_uso(ctx):
+def test_recuperacion_por_enlace_un_solo_uso(ctx, monkeypatch):
+    from app.models import notificacion
+
+    enviados = []
+    def enviar(destinatario, asunto, cuerpo):
+        enviados.append(cuerpo)
+        return "enviado", ""
+
+    monkeypatch.setattr(notificacion, "enviar_correo", enviar)
     socio.solicitar_recuperacion("maria.solano@example.test")
-    n = one("SELECT COUNT(*) c FROM notificaciones WHERE asunto LIKE '%contraseña%' OR asunto LIKE '%Recuper%'")["c"]
-    assert n >= 1
-    socio.solicitar_recuperacion("nadie@example.test")  # no revela si existe: no lanza
+    enlace = next(palabra for palabra in enviados[0].split() if "/recuperar/" in palabra)
+    token = enlace.rsplit("/", 1)[1]
+    aviso = one("SELECT * FROM notificaciones WHERE codigo='recuperar_password'")
+    assert token not in aviso["cuerpo"]
+    assert token not in aviso["asunto"]
+    assert token not in aviso["detalle"]
+    socio.restablecer_con_token(token, "DemoNueva2026!", "DemoNueva2026!")
+    assert socio.token_valido(token) is None
+    socio.solicitar_recuperacion("nadie@example.test")
+    assert len(enviados) == 1
+
 
 
 # ---- membresías
@@ -109,6 +125,32 @@ def test_sin_traslape_en_instalacion_exclusiva(ctx):
         _res(_id("maria.solano@example.test"), "Cancha de tenis", _d(9), "10:30", "11:30", 2)
     assert "traslape" in str(e.value)
     _res(_id("maria.solano@example.test"), "Cancha de tenis", _d(9), "11:00", "12:00", 2)  # contiguas sí
+
+
+@pytest.mark.parametrize("instalacion", ["Cancha de tenis", "Piscina"])
+def test_reservas_simultaneas_respetan_disponibilidad(app, instalacion):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    with app.app_context():
+        socios = [_id("maria.solano@example.test"), _id("carlos.rojas@example.test")]
+        cupo = _inst(instalacion)["aforo_max"]
+        fecha = _d(20)
+
+    barrera = Barrier(2)
+
+    def intentar(socio_id):
+        with app.app_context():
+            barrera.wait(timeout=5)
+            try:
+                _res(socio_id, instalacion, fecha, "10:00", "11:00", cupo)
+            except ReglaError as error:
+                assert "traslape" in str(error) or "cupo" in str(error)
+                return False
+            return True
+
+    with ThreadPoolExecutor(max_workers=2) as trabajadores:
+        assert sorted(trabajadores.map(intentar, socios)) == [False, True]
 
 
 def test_horario_y_aforo_y_bloqueo(ctx):

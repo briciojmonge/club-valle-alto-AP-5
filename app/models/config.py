@@ -22,7 +22,7 @@ TIPOS_DEFAULT = [
     ("individual", 38000.0, 3, 0, 1),
     ("familiar", 45000.0, 5, 4, 1),
     ("corporativa", 90000.0, 10, 0, 1),
-    ("honoraria", 0.0, 6, 0, 0),
+    ("honoraria", 0.0, 6, 0, 1),
 ]
 
 INSTALACIONES_DEFAULT = [
@@ -167,4 +167,6 @@ def actualizar_tipo(nombre, cuota, limite_invitados, max_beneficiarios):
 
 def moneda(valor):
     # Formato del prototipo: ₡45 000 (espacio de no separación como separador de miles, sin decimales)
-    return f"{obtener('moneda', '₡')}{valor:,.0f}".replace(",", "\u00a0")
+    entera, decimales = f"{valor:,.2f}".split(".")
+    entera = entera.replace(",", "\u00a0")
+    return f"{obtener('moneda', '₡')}{entera}" + (f",{decimales}" if decimales != "00" else "")

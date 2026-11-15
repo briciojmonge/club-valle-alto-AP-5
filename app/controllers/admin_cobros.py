@@ -108,7 +108,10 @@ def membresia_beneficiario_eliminar(mid, bid):
 def cuentas():
     if request.method == "POST":
         try:
-            r = cuenta.generar_periodo((request.form.get("periodo") or "").strip())
+            periodo = (request.form.get("periodo") or "").strip()
+            if periodo != cuenta.periodo_actual():
+                raise ReglaError("Solo se pueden generar cargos del mes actual.")
+            r = cuenta.generar_periodo(periodo)
             flash(f"Periodo generado: {r['cuotas']} cuota(s), {r['servicios']} cargo(s) de servicios y "
                   f"{r['estados_cuenta']} estado(s) de cuenta nuevo(s) notificado(s).", "ok")
             return redirect(url_for("admin_cobros.cuentas", periodo=request.form.get("periodo")))
@@ -118,7 +121,7 @@ def cuentas():
     estado = request.args.get("estado", "")
     q = request.args.get("q", "")
     return render_template("admin/cuentas.html", lista=cuenta.resumen_por_socio(periodo, estado, q), periodo=periodo, estado=estado, q=q,
-                           periodos=cuenta.periodos_disponibles())
+                           periodos=cuenta.periodos_disponibles(), puede_generar=periodo == cuenta.periodo_actual())
 
 
 @bp.post("/cuentas/<int:cid>/pago")

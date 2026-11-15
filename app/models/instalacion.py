@@ -1,5 +1,6 @@
 """Instalaciones, servicios adicionales y bloqueos (mantenimiento / eventos privados)."""
 from app.db import ReglaError, execute, hoy, one, query
+from app.db import transaccion_escritura
 from app.services import validators as v
 
 TIPOS = {"golf": "Cancha de golf", "tenis": "Cancha de tenis", "piscina": "Piscina", "salon": "Salón de eventos"}
@@ -81,25 +82,26 @@ def bloqueos(iid=None, desde=None):
 
 
 def crear_bloqueo(iid, form, admin_id):
-    inst = por_id(iid)
-    fecha = v.fecha(form.get("fecha"), "La fecha del bloqueo")
-    if fecha < hoy():
-        raise ReglaError("No se puede bloquear una fecha pasada.")
-    ini = v.hora(form.get("hora_inicio"), "La hora de inicio")
-    fin = v.hora(form.get("hora_fin"), "La hora de fin")
-    if v.minutos(ini) >= v.minutos(fin):
-        raise ReglaError("La hora de fin debe ser posterior a la de inicio.")
-    if v.minutos(ini) < v.minutos(inst["hora_apertura"]) or v.minutos(fin) > v.minutos(inst["hora_cierre"]):
-        raise ReglaError(f"El bloqueo debe estar dentro del horario de la instalación ({inst['hora_apertura']}–{inst['hora_cierre']}).")
-    motivo = v.texto(form.get("motivo"), "El motivo", 3, 200)
-    choques = query("SELECT id, hora_inicio, hora_fin FROM reservas WHERE instalacion_id=? AND fecha=? "
-                    "AND estado IN ('pendiente','confirmada')", (iid, fecha.isoformat()))
-    conflictivas = [c for c in choques if v.minutos(c["hora_inicio"]) < v.minutos(fin) and v.minutos(ini) < v.minutos(c["hora_fin"])]
-    if conflictivas:
-        ids = ", ".join(f"#{c['id']}" for c in conflictivas)
-        raise ReglaError(f"Existen reservas en ese horario ({ids}). Cancélelas o modifíquelas antes de bloquear la instalación.")
-    return execute("INSERT INTO bloqueos(instalacion_id, fecha, hora_inicio, hora_fin, motivo, admin_id) VALUES (?,?,?,?,?,?)",
-                   (iid, fecha.isoformat(), ini, fin, motivo, admin_id))
+    with transaccion_escritura():
+        inst = por_id(iid)
+        fecha = v.fecha(form.get("fecha"), "La fecha del bloqueo")
+        if fecha < hoy():
+            raise ReglaError("No se puede bloquear una fecha pasada.")
+        ini = v.hora(form.get("hora_inicio"), "La hora de inicio")
+        fin = v.hora(form.get("hora_fin"), "La hora de fin")
+        if v.minutos(ini) >= v.minutos(fin):
+            raise ReglaError("La hora de fin debe ser posterior a la de inicio.")
+        if v.minutos(ini) < v.minutos(inst["hora_apertura"]) or v.minutos(fin) > v.minutos(inst["hora_cierre"]):
+            raise ReglaError(f"El bloqueo debe estar dentro del horario de la instalación ({inst['hora_apertura']}–{inst['hora_cierre']}).")
+        motivo = v.texto(form.get("motivo"), "El motivo", 3, 200)
+        choques = query("SELECT id, hora_inicio, hora_fin FROM reservas WHERE instalacion_id=? AND fecha=? "
+                        "AND estado IN ('pendiente','confirmada')", (iid, fecha.isoformat()))
+        conflictivas = [c for c in choques if v.minutos(c["hora_inicio"]) < v.minutos(fin) and v.minutos(ini) < v.minutos(c["hora_fin"])]
+        if conflictivas:
+            ids = ", ".join(f"#{c['id']}" for c in conflictivas)
+            raise ReglaError(f"Existen reservas en ese horario ({ids}). Cancélelas o modifíquelas antes de bloquear la instalación.")
+        return execute("INSERT INTO bloqueos(instalacion_id, fecha, hora_inicio, hora_fin, motivo, admin_id) VALUES (?,?,?,?,?,?)",
+                       (iid, fecha.isoformat(), ini, fin, motivo, admin_id))
 
 
 def eliminar_bloqueo(bid):

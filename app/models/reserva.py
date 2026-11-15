@@ -1,7 +1,7 @@
 """Módulos 4 y 6: Reserva de instalaciones y gestión operativa (calendario, ocupación, reportes)."""
 from datetime import date, datetime, timedelta
 
-from app.db import ReglaError, ahora, ahora_txt, execute, hoy, one, query
+from app.db import ReglaError, ahora, ahora_txt, execute, hoy, one, query, transaccion_escritura
 from app.models import config, instalacion, membresia, notificacion, socio
 from app.services import validators as v
 
@@ -55,10 +55,6 @@ def _inicio_dt(r):
     return datetime.strptime(f"{r['fecha']} {r['hora_inicio']}", "%Y-%m-%d %H:%M")
 
 
-def _fin_dt(r):
-    return datetime.strptime(f"{r['fecha']} {r['hora_fin']}", "%Y-%m-%d %H:%M")
-
-
 # ---------------------------------------------------------------- consultas
 def por_id(rid):
     return one("SELECT r.*, i.nombre AS instalacion, i.modo, s.nombre AS socio_nombre, s.correo AS socio_correo, s.cedula AS socio_cedula "
@@ -95,11 +91,14 @@ def listar(fecha_desde="", fecha_hasta="", instalacion_id="", estado="", busqued
 
 
 def finalizar_pasadas():
-    """Pasa a 'finalizada' las reservas confirmadas cuyo horario ya terminó."""
-    ahora_dt = ahora()
-    for r in query("SELECT id, fecha, hora_fin FROM reservas WHERE estado='confirmada' AND fecha<=?", (ahora_dt.date().isoformat(),)):
-        if _fin_dt(r) <= ahora_dt:
-            execute("UPDATE reservas SET estado='finalizada', actualizado_en=? WHERE id=?", (ahora_txt(), r["id"]))
+    """Finaliza las confirmadas y cancela las pendientes que ya iniciaron."""
+    ahora_iso = ahora_txt()
+    execute("UPDATE reservas SET estado='finalizada', actualizado_en=? "
+            "WHERE estado='confirmada' AND fecha || ' ' || hora_fin || ':00' <= ?",
+            (ahora_iso, ahora_iso))
+    execute("UPDATE reservas SET estado='cancelada', actualizado_en=? "
+            "WHERE estado='pendiente' AND fecha || ' ' || hora_inicio || ':00' <= ?",
+            (ahora_iso, ahora_iso))
 
 
 # ---------------------------------------------------------------- operaciones del socio
@@ -134,18 +133,19 @@ def _exigir_socio_habilitado(socio_id):
 
 
 def crear(socio_id, form):
-    _exigir_socio_habilitado(socio_id)
-    inst = instalacion.por_id(form.get("instalacion_id") or 0)
-    if inst is None or not inst["activa"]:
-        raise ReglaError("Seleccione una instalación válida.")
-    fecha, ini, fin, personas, servicios = _leer_form(form, inst)
-    validar_disponibilidad(inst, fecha, ini, fin, personas)
-    estado = "confirmada" if config.obtener("reserva_autoconfirmar", "1") == "1" else "pendiente"
-    rid = execute(
-        "INSERT INTO reservas(socio_id, instalacion_id, fecha, hora_inicio, hora_fin, personas, estado, creado_en, actualizado_en) "
-        "VALUES (?,?,?,?,?,?,?,?,?)", (socio_id, inst["id"], fecha, ini, fin, personas, estado, ahora_txt(), ahora_txt()))
-    for s in servicios:
-        execute("INSERT INTO reserva_servicios(reserva_id, servicio_id, costo) VALUES (?,?,?)", (rid, s["id"], s["costo"]))
+    with transaccion_escritura():
+        _exigir_socio_habilitado(socio_id)
+        inst = instalacion.por_id(form.get("instalacion_id") or 0)
+        if inst is None or not inst["activa"]:
+            raise ReglaError("Seleccione una instalación válida.")
+        fecha, ini, fin, personas, servicios = _leer_form(form, inst)
+        validar_disponibilidad(inst, fecha, ini, fin, personas)
+        estado = "confirmada" if config.obtener("reserva_autoconfirmar", "1") == "1" else "pendiente"
+        rid = execute(
+            "INSERT INTO reservas(socio_id, instalacion_id, fecha, hora_inicio, hora_fin, personas, estado, creado_en, actualizado_en) "
+            "VALUES (?,?,?,?,?,?,?,?,?)", (socio_id, inst["id"], fecha, ini, fin, personas, estado, ahora_txt(), ahora_txt()))
+        for s in servicios:
+            execute("INSERT INTO reserva_servicios(reserva_id, servicio_id, costo) VALUES (?,?,?)", (rid, s["id"], s["costo"]))
     if estado == "confirmada":
         _notificar(rid, "reserva_confirmada")
     return rid
@@ -157,46 +157,51 @@ def _puede_cambiar(r):
 
 
 def modificar(rid, form, socio_id=None):
-    r = por_id(rid)
-    if r is None or (socio_id is not None and r["socio_id"] != socio_id):
-        raise ReglaError("Reserva no encontrada.")
-    _puede_cambiar(r)
-    if socio_id is not None and _inicio_dt(r) <= ahora():
-        raise ReglaError("La reserva ya inició; no se puede modificar.")
-    inst = instalacion.por_id(r["instalacion_id"])
-    fecha, ini, fin, personas, servicios = _leer_form(form, inst)
-    validar_disponibilidad(inst, fecha, ini, fin, personas, excluir_id=rid)
-    execute("UPDATE reservas SET fecha=?, hora_inicio=?, hora_fin=?, personas=?, actualizado_en=? WHERE id=?",
-            (fecha, ini, fin, personas, ahora_txt(), rid))
-    nuevos = {s["id"] for s in servicios}
-    for s in servicios_de(rid):
-        if s["servicio_id"] not in nuevos:
-            execute("DELETE FROM reserva_servicios WHERE reserva_id=? AND servicio_id=?", (rid, s["servicio_id"]))
-            execute("UPDATE cargos SET estado='anulado' WHERE reserva_id=? AND servicio_id=? AND estado='pendiente'", (rid, s["servicio_id"]))
-    for s in servicios:
-        execute("INSERT OR IGNORE INTO reserva_servicios(reserva_id, servicio_id, costo) VALUES (?,?,?)", (rid, s["id"], s["costo"]))
+    with transaccion_escritura():
+        r = por_id(rid)
+        if r is None or (socio_id is not None and r["socio_id"] != socio_id):
+            raise ReglaError("Reserva no encontrada.")
+        _puede_cambiar(r)
+        if socio_id is not None and _inicio_dt(r) <= ahora():
+            raise ReglaError("La reserva ya inició; no se puede modificar.")
+        inst = instalacion.por_id(r["instalacion_id"])
+        fecha, ini, fin, personas, servicios = _leer_form(form, inst)
+        validar_disponibilidad(inst, fecha, ini, fin, personas, excluir_id=rid)
+        execute("UPDATE reservas SET fecha=?, hora_inicio=?, hora_fin=?, personas=?, actualizado_en=? WHERE id=?",
+                (fecha, ini, fin, personas, ahora_txt(), rid))
+        nuevos = {s["id"] for s in servicios}
+        for s in servicios_de(rid):
+            if s["servicio_id"] not in nuevos:
+                execute("DELETE FROM reserva_servicios WHERE reserva_id=? AND servicio_id=?", (rid, s["servicio_id"]))
+                execute("UPDATE cargos SET estado='anulado' WHERE reserva_id=? AND servicio_id=? AND estado='pendiente'", (rid, s["servicio_id"]))
+        for s in servicios:
+            execute("INSERT OR IGNORE INTO reserva_servicios(reserva_id, servicio_id, costo) VALUES (?,?,?)", (rid, s["id"], s["costo"]))
     _notificar(rid, "reserva_modificada")
 
 
 def cancelar(rid, socio_id=None):
-    r = por_id(rid)
-    if r is None or (socio_id is not None and r["socio_id"] != socio_id):
-        raise ReglaError("Reserva no encontrada.")
-    _puede_cambiar(r)
-    if socio_id is not None and _inicio_dt(r) <= ahora():
-        raise ReglaError("La reserva ya inició; no se puede cancelar.")
-    execute("UPDATE reservas SET estado='cancelada', actualizado_en=? WHERE id=?", (ahora_txt(), rid))
-    execute("UPDATE cargos SET estado='anulado' WHERE reserva_id=? AND estado='pendiente'", (rid,))
+    with transaccion_escritura():
+        r = por_id(rid)
+        if r is None or (socio_id is not None and r["socio_id"] != socio_id):
+            raise ReglaError("Reserva no encontrada.")
+        _puede_cambiar(r)
+        if socio_id is not None and _inicio_dt(r) <= ahora():
+            raise ReglaError("La reserva ya inició; no se puede cancelar.")
+        execute("UPDATE reservas SET estado='cancelada', actualizado_en=? WHERE id=?", (ahora_txt(), rid))
+        execute("UPDATE cargos SET estado='anulado' WHERE reserva_id=? AND estado='pendiente'", (rid,))
     _notificar(rid, "reserva_cancelada")
 
 
 def confirmar(rid):
-    r = por_id(rid)
-    if r is None or r["estado"] != "pendiente":
-        raise ReglaError("Solo se pueden confirmar reservas pendientes.")
-    inst = instalacion.por_id(r["instalacion_id"])
-    validar_disponibilidad(inst, r["fecha"], r["hora_inicio"], r["hora_fin"], r["personas"], excluir_id=rid)
-    execute("UPDATE reservas SET estado='confirmada', actualizado_en=? WHERE id=?", (ahora_txt(), rid))
+    with transaccion_escritura():
+        r = por_id(rid)
+        if r is None or r["estado"] != "pendiente":
+            raise ReglaError("Solo se pueden confirmar reservas pendientes.")
+        if _inicio_dt(r) <= ahora():
+            raise ReglaError("La reserva ya inició; no se puede confirmar.")
+        inst = instalacion.por_id(r["instalacion_id"])
+        validar_disponibilidad(inst, r["fecha"], r["hora_inicio"], r["hora_fin"], r["personas"], excluir_id=rid)
+        execute("UPDATE reservas SET estado='confirmada', actualizado_en=? WHERE id=?", (ahora_txt(), rid))
     _notificar(rid, "reserva_confirmada")
 
 

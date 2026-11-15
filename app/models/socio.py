@@ -8,6 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.db import ReglaError, ahora, ahora_txt, execute, one, query
 from app.models import acceso, notificacion
+from app.db import transaccion_escritura
 from app.services import validators as v
 
 
@@ -110,15 +111,16 @@ def token_valido(token):
 
 
 def restablecer_con_token(token, nueva, confirmacion):
-    fila = token_valido(token)
-    if fila is None:
-        raise ReglaError("El enlace no es válido o ya venció. Solicite uno nuevo.")
-    nueva = v.password(nueva)
-    if nueva != confirmacion:
-        raise ReglaError("Las contraseñas no coinciden.")
-    execute("UPDATE socios SET password_hash=?, intentos_fallidos=0, bloqueado_hasta=NULL, debe_cambiar_password=0 WHERE id=?",
-            (_hash(nueva), fila["socio_id"]))
-    execute("UPDATE reset_tokens SET usado=1 WHERE socio_id=?", (fila["socio_id"],))
+    with transaccion_escritura():
+        fila = token_valido(token)
+        if fila is None:
+            raise ReglaError("El enlace no es válido o ya venció. Solicite uno nuevo.")
+        nueva = v.password(nueva)
+        if nueva != confirmacion:
+            raise ReglaError("Las contraseñas no coinciden.")
+        execute("UPDATE socios SET password_hash=?, intentos_fallidos=0, bloqueado_hasta=NULL, debe_cambiar_password=0 WHERE id=?",
+                (_hash(nueva), fila["socio_id"]))
+        execute("UPDATE reset_tokens SET usado=1 WHERE socio_id=?", (fila["socio_id"],))
 
 
 # ---- gestión por administradores ------------------------------------------------------

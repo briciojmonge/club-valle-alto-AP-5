@@ -187,14 +187,18 @@ def tareas_diarias():
     for c in query("SELECT c.*, s.nombre, s.correo FROM cargos c JOIN socios s ON s.id=c.socio_id "
                    "WHERE c.estado='pendiente' AND c.recordatorio_enviado=0 AND c.fecha_limite BETWEEN ? AND ?",
                    (hoy_d.isoformat(), aviso)):
-        notificacion.notificar({"id": c["socio_id"], "nombre": c["nombre"], "correo": c["correo"]}, "recordatorio_pago",
+        aviso_id = notificacion.notificar({"id": c["socio_id"], "nombre": c["nombre"], "correo": c["correo"]}, "recordatorio_pago",
                                {"concepto": c["concepto"], "monto": config.moneda(c["monto"]), "fecha_limite": c["fecha_limite"]})
+        if aviso_id is None or one("SELECT estado FROM notificaciones WHERE id=?", (aviso_id,))["estado"] != "enviado":
+            continue
         execute("UPDATE cargos SET recordatorio_enviado=1 WHERE id=?", (c["id"],))
         recordatorios += 1
     for c in query("SELECT c.*, s.nombre, s.correo FROM cargos c JOIN socios s ON s.id=c.socio_id "
                    "WHERE c.estado='pendiente' AND c.vencido_notificado=0 AND c.fecha_limite < ?", (hoy_d.isoformat(),)):
-        notificacion.notificar({"id": c["socio_id"], "nombre": c["nombre"], "correo": c["correo"]}, "pago_vencido",
+        aviso_id = notificacion.notificar({"id": c["socio_id"], "nombre": c["nombre"], "correo": c["correo"]}, "pago_vencido",
                                {"concepto": c["concepto"], "monto": config.moneda(c["monto"]), "fecha_limite": c["fecha_limite"]})
+        if aviso_id is None or one("SELECT estado FROM notificaciones WHERE id=?", (aviso_id,))["estado"] != "enviado":
+            continue
         execute("UPDATE cargos SET vencido_notificado=1 WHERE id=?", (c["id"],))
         vencidos += 1
     resultado.update(recordatorios=recordatorios, avisos_vencido=vencidos)
