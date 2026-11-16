@@ -21,6 +21,7 @@ Abra http://127.0.0.1:5000. El archivo `.flaskenv` ya define `FLASK_APP=app`.
 | `DATABASE` | Ruta del archivo SQLite (por defecto `instance/club.db`). |
 | `BASE_URL` | URL pública; se usa en los enlaces de recuperación de contraseña. |
 | `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_USE_TLS`, `MAIL_FROM` | Correo saliente. Sin `MAIL_SERVER` los mensajes quedan en el historial con estado **simulado**. |
+| `MAIL_AUTH_METHOD` | `auto` (predeterminado) o `login` para usar AUTH LOGIN con STARTTLS cuando el servidor anuncia ese mecanismo. |
 | `SESSION_COOKIE_SECURE` | `true` cuando el sitio se sirve por HTTPS. |
 
 ## Credenciales de demostración

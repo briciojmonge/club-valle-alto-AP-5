@@ -192,7 +192,7 @@ def reserva_nueva():
     if request.method == "POST":
         try:
             reserva.crear(g.socio["id"], request.form)
-            flash("Reserva registrada. Recibirá la notificación por correo.", "ok")
+            flash("Reserva registrada. Si no recibe el correo, contacte a la administración.", "ok")
             return redirect(url_for("portal.reservas"))
         except ReglaError as e:
             flash(str(e), "error")

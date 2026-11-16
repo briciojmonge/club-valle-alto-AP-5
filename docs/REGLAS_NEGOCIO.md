@@ -17,7 +17,7 @@ Los montos se muestran en colones (₡), como en el prototipo. Las cuotas del pr
 | Individual | ₡38 000 | 3 | 0 | socio o personal |
 | Familiar | ₡45 000 | 5 | 4 | socio o personal |
 | Corporativa | ₡90 000 | 10 | 0 | socio o personal |
-| Honoraria | ₡0 | 6 | 0 | solo personal |
+| Honoraria | ₡0 | 6 | 0 | socio o personal ⚠ |
 
 - Un socio solo puede tener **una** membresía vigente.
 - Estados: activa, suspendida, vencida (automático al pasar la fecha de renovación; renovación por defecto 365 días ⚠), baja. Cada cambio queda en el historial.
@@ -34,14 +34,14 @@ Los montos se muestran en colones (₡), como en el prototipo. Las cuotas del pr
 - Instalación **exclusiva**: no se admiten traslapes (franjas contiguas sí). **Compartida**: se suman personas hasta el aforo.
 - Se rechaza lo que quede fuera del horario, supere el aforo o caiga en un bloqueo.
 - Servicios adicionales con costo (ej. raquetas ₡5 000, palos ₡15 000, sombrilla ₡3 000, montaje ₡50 000) ⚠ que se cobran en el estado de cuenta.
-- Modificar o cancelar solo mientras la reserva no haya iniciado; las pasadas se marcan `finalizada`.
+- El socio puede modificar o cancelar solo mientras la reserva no haya iniciado. El mantenimiento finaliza las confirmadas que terminaron y cancela las pendientes que ya iniciaron; esta última regla debe validarse con la Gerencia.
 - Confirmación automática por defecto; con `reserva_autoconfirmar=0` quedan pendientes hasta que el personal las confirme.
 
 ## Estado de cuenta
-- Se genera por periodo `YYYY-MM`: cuota de membresía + servicios de reservas del periodo; es idempotente.
+- La pantalla administrativa genera el periodo actual `YYYY-MM`: cuota de membresía + servicios de reservas del periodo; es idempotente. El modelo acepta otros periodos usando los datos actuales, por lo que no debe utilizarse para reconstruir cobros históricos sin validar las reglas.
 - Plazo de pago de 15 días ⚠; recordatorio 3 días antes; aviso al vencer.
 - El pago se registra **manualmente** por el personal de cobros (sin pasarela).
 - Morosos: cargos pendientes vencidos, filtrables por días de atraso. Exportación del estado de cuenta en PDF.
 
 ## Notificaciones
-Plantillas editables (solo rol general) con variables; todo envío queda en el historial con estado enviado, simulado o error.
+Plantillas editables (solo rol general) con variables; los intentos quedan en el historial con estado enviado, simulado, error u omitido. Sin SMTP los mensajes son simulados y no se entregan. Los avisos de pago se marcan como enviados solo cuando el envío se registra como exitoso.

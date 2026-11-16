@@ -13,7 +13,7 @@
   {% if servicios %}<fieldset class="campo"><legend><strong>Servicios adicionales</strong></legend>
     {% for s in servicios %}<label class="check"><input type="checkbox" name="servicios" value="{{ s.id }}" {% if s.id|string in elegidos %}checked{% endif %}> {{ s.nombre }} ({{ s.costo|dinero }})</label>{% endfor %}
   </fieldset>{% endif %}
-  <p class="ayuda">Al guardar, el socio recibe una notificación de la modificación.</p>
+  <p class="ayuda">El envío de la notificación depende de la configuración de correo.</p>
   <div class="acciones"><button class="btn btn-primario" type="submit">Guardar cambios</button><a href="{{ url_for('admin_ops.reserva_detalle', rid=r.id) }}">Cancelar</a></div>
 </form>
 {% endblock %}

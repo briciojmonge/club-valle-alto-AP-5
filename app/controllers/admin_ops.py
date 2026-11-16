@@ -115,7 +115,7 @@ def reserva_detalle(rid):
 def reserva_confirmar(rid):
     try:
         reserva.confirmar(rid)
-        flash("Reserva confirmada y notificada al socio.", "ok")
+        flash("Reserva confirmada. Consulte el estado del correo en el historial de notificaciones o con el personal de cobros.", "ok")
     except ReglaError as e:
         flash(str(e), "error")
     return redirect(url_for("admin_ops.reserva_detalle", rid=rid))
@@ -126,7 +126,7 @@ def reserva_confirmar(rid):
 def reserva_cancelar(rid):
     try:
         reserva.cancelar(rid)
-        flash("Reserva cancelada y notificada al socio.", "ok")
+        flash("Reserva cancelada. Consulte el estado del correo en el historial de notificaciones o con el personal de cobros.", "ok")
     except ReglaError as e:
         flash(str(e), "error")
     return redirect(url_for("admin_ops.reserva_detalle", rid=rid))
@@ -141,7 +141,7 @@ def reserva_editar(rid):
     if request.method == "POST":
         try:
             reserva.modificar(rid, request.form)
-            flash("Reserva modificada y notificada al socio.", "ok")
+            flash("Reserva modificada. Consulte el estado del correo en el historial de notificaciones o con el personal de cobros.", "ok")
             return redirect(url_for("admin_ops.reserva_detalle", rid=rid))
         except ReglaError as e:
             flash(str(e), "error")

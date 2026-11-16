@@ -37,10 +37,10 @@ Blueprints: `auth` (público), `portal` (`/socio`), `admin_core` (socios, usuari
 - **Integridad en la base:** `CHECK`, claves foráneas y **índices únicos parciales** (una membresía vigente por socio, un cargo de cuota por periodo, un cargo por servicio y reserva).
 - **Seguridad:** contraseñas con hash de werkzeug; bloqueo temporal por intentos; token de recuperación guardado como hash, de un solo uso y válido 60 min; respuesta de recuperación que no revela si el correo existe; sesión limpiada al iniciar sesión; CSP sin JS ni estilos en línea; SQL siempre parametrizado.
 - **Accesibilidad:** enlace «saltar al contenido», `label` en todos los campos, tablas con `scope`, mensajes con `role`, estados con texto (no solo color), foco visible y diseño móvil primero.
-- **Rendimiento:** sin frameworks JS, CSS único, consultas indexadas; el JS es opcional.
+- **Rendimiento:** sin frameworks JS, CSS único y consultas indexadas. Los modales requieren JavaScript.
 - **Correo:** si no hay SMTP configurado, la notificación se guarda en el historial como `simulado`, de modo que el flujo se pueda demostrar sin servidor de correo.
 
 ## Limitaciones conocidas
-- SQLite con varios procesos de gunicorn: la validación de traslapes y el insertado no son una única transacción atómica; con carga alta podría darse una doble reserva simultánea. Mitigación futura: transacción `BEGIN IMMEDIATE` o motor cliente-servidor.
+- Las operaciones de reserva y creación de bloqueos usan `BEGIN IMMEDIATE` para validar y escribir en una transacción. SQLite sigue serializando escrituras; falta evaluar conflictos, tiempos de espera y comportamiento con mayor carga y varios procesos.
 - No hay cola de tareas: `flask tareas-diarias` debe programarse externamente.
 - Pagos solo manuales (según el alcance).

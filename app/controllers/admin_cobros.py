@@ -113,7 +113,8 @@ def cuentas():
                 raise ReglaError("Solo se pueden generar cargos del mes actual.")
             r = cuenta.generar_periodo(periodo)
             flash(f"Periodo generado: {r['cuotas']} cuota(s), {r['servicios']} cargo(s) de servicios y "
-                  f"{r['estados_cuenta']} estado(s) de cuenta nuevo(s) notificado(s).", "ok")
+                  f"{r['estados_cuenta']} estado(s) de cuenta nuevo(s). Consulte el historial de notificaciones "
+                  "para verificar los envíos.", "ok")
             return redirect(url_for("admin_cobros.cuentas", periodo=request.form.get("periodo")))
         except ReglaError as e:
             flash(str(e), "error")

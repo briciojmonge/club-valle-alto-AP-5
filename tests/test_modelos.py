@@ -74,6 +74,100 @@ def test_recuperacion_por_enlace_un_solo_uso(ctx, monkeypatch):
     assert len(enviados) == 1
 
 
+@pytest.mark.parametrize(("fallo", "etapa"), [
+    ("conexion", "conexión"),
+    ("starttls", "STARTTLS"),
+    ("login", "autenticación"),
+    ("send_message", "envío"),
+    ("cierre", "cierre"),
+])
+def test_correo_informa_etapa_de_fallo(app, ctx, monkeypatch, fallo, etapa):
+    import smtplib
+    from unittest.mock import MagicMock
+
+    from app.services import mailer
+
+    app.config.update(MAIL_SERVER="smtp.example.test", MAIL_PORT=587, MAIL_USE_TLS=True,
+                      MAIL_USERNAME="prueba", MAIL_PASSWORD="prueba", MAIL_FROM="prueba@example.test")
+    servidor = MagicMock()
+    servidor.__enter__.return_value = servidor
+    error = smtplib.SMTPServerDisconnected("Conexión cerrada")
+    conectar = MagicMock(return_value=servidor)
+    if fallo == "conexion":
+        conectar.side_effect = error
+    elif fallo == "cierre":
+        servidor.__exit__.side_effect = error
+    else:
+        getattr(servidor, fallo).side_effect = error
+    monkeypatch.setattr(mailer.smtplib, "SMTP", conectar)
+
+    estado, detalle = mailer.enviar_correo("destino@example.test", "Prueba", "Mensaje")
+    assert estado == "error"
+    assert f"SMTPServerDisconnected (etapa: {etapa})" in detalle
+
+
+@pytest.mark.parametrize("tls", [True, False])
+def test_correo_envio_con_y_sin_starttls(app, ctx, monkeypatch, tls):
+    from unittest.mock import MagicMock
+
+    from app.services import mailer
+
+    app.config.update(MAIL_SERVER="smtp.example.test", MAIL_PORT=587, MAIL_USE_TLS=tls,
+                      MAIL_USERNAME="prueba", MAIL_PASSWORD="prueba", MAIL_FROM="prueba@example.test")
+    servidor = MagicMock()
+    servidor.__enter__.return_value = servidor
+    monkeypatch.setattr(mailer.smtplib, "SMTP", MagicMock(return_value=servidor))
+
+    assert mailer.enviar_correo("destino@example.test", "Prueba", "Mensaje") == ("enviado", "")
+    assert servidor.starttls.called == tls
+    servidor.login.assert_called_once_with("prueba", "prueba")
+    servidor.send_message.assert_called_once()
+
+
+def test_correo_autenticacion_login(app, ctx, monkeypatch):
+    from unittest.mock import MagicMock
+
+    from app.services import mailer
+
+    app.config.update(MAIL_SERVER="smtp.example.test", MAIL_PORT=587, MAIL_USE_TLS=True,
+                      MAIL_USERNAME="prueba", MAIL_PASSWORD="prueba", MAIL_FROM="prueba@example.test",
+                      MAIL_AUTH_METHOD="login")
+    servidor = MagicMock()
+    servidor.__enter__.return_value = servidor
+    servidor.esmtp_features = {"auth": "PLAIN LOGIN"}
+    monkeypatch.setattr(mailer.smtplib, "SMTP", MagicMock(return_value=servidor))
+
+    assert mailer.enviar_correo("destino@example.test", "Prueba", "Mensaje") == ("enviado", "")
+    servidor.auth.assert_called_once_with("LOGIN", servidor.auth_login, initial_response_ok=False)
+    servidor.login.assert_not_called()
+    servidor.send_message.assert_called_once()
+
+
+@pytest.mark.parametrize(("tls", "mecanismos", "metodo"), [
+    (False, "LOGIN", "login"),
+    (True, "PLAIN", "login"),
+    (True, "LOGIN", "invalido"),
+])
+def test_correo_rechaza_metodo_inseguro_o_no_disponible(app, ctx, monkeypatch, tls, mecanismos, metodo):
+    from unittest.mock import MagicMock
+
+    from app.services import mailer
+
+    app.config.update(MAIL_SERVER="smtp.example.test", MAIL_PORT=587, MAIL_USE_TLS=tls,
+                      MAIL_USERNAME="prueba", MAIL_PASSWORD="prueba", MAIL_FROM="prueba@example.test",
+                      MAIL_AUTH_METHOD=metodo)
+    servidor = MagicMock()
+    servidor.__enter__.return_value = servidor
+    servidor.esmtp_features = {"auth": mecanismos}
+    monkeypatch.setattr(mailer.smtplib, "SMTP", MagicMock(return_value=servidor))
+
+    estado, detalle = mailer.enviar_correo("destino@example.test", "Prueba", "Mensaje")
+    assert estado == "error"
+    assert "etapa: autenticación" in detalle
+    servidor.auth.assert_not_called()
+    servidor.send_message.assert_not_called()
+
+
 
 # ---- membresías
 def test_beneficiarios_solo_familiar_y_limite(ctx):

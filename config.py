@@ -21,6 +21,7 @@ class Config:
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
     MAIL_USE_TLS = _bool(os.environ.get("MAIL_USE_TLS"), True)
+    MAIL_AUTH_METHOD = os.environ.get("MAIL_AUTH_METHOD", "auto").strip().lower()
     MAIL_FROM = os.environ.get("MAIL_FROM", "Club Valle Alto <no-responder@example.com>")
 
     # Sesión

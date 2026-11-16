@@ -2,7 +2,7 @@
 {% from "_macros.html" import csrf, field %}
 {% block titulo %}Recuperar contraseña{% endblock %}
 {% block acceso_titulo %}Recuperar contraseña{% endblock %}
-{% block acceso_sub %}Le enviaremos un enlace a su correo para crear una contraseña nueva.{% endblock %}
+{% block acceso_sub %}Solicite el restablecimiento de su contraseña con su correo electrónico.{% endblock %}
 {% block acceso_cuerpo %}
 <form method="post" novalidate>
   {{ csrf() }}

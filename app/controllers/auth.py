@@ -63,7 +63,8 @@ def recuperar():
     if request.method == "POST":
         socio.solicitar_recuperacion(request.form.get("correo"))
         # Mensaje idéntico exista o no el correo (evita enumerar socios).
-        flash("Si el correo está registrado, recibirá un enlace para restablecer su contraseña (válido por 60 minutos).", "ok")
+        flash("Si la cuenta cumple los requisitos, se procesará la solicitud de recuperación. "
+              "El enlace, si se envía, es válido por 60 minutos. Si no lo recibe, contacte a la administración.", "ok")
         return redirect(url_for("auth.login"))
     return render_template("auth/recuperar.html")
 

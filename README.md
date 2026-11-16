@@ -12,7 +12,7 @@ python3 -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\
 pip install -r requirements-dev.txt
 flask seed --reset          # crea la BD con datos FICTICIOS de demostración
 flask run                   # http://127.0.0.1:5000
-pytest                      # 42 pruebas automáticas
+pytest                      # pruebas automáticas
 ```
 
 Credenciales de demostración (todas con la contraseña `Demo2026!`): ver [docs/INSTALACION.md](docs/INSTALACION.md).

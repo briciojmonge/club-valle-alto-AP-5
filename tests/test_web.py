@@ -22,6 +22,13 @@ def test_paginas_publicas(client):
         assert client.get(r).status_code == 200, r
 
 
+def test_titulos_de_paginas(client, maria):
+    for ruta, titulo in (("/login", "Iniciar sesión"), ("/registro", "Registro de socio"),
+                         ("/socio", "Panel del socio")):
+        html = client.get(ruta).get_data(as_text=True)
+        assert f"<title>{titulo} · Club Valle Alto</title>" in html
+
+
 def test_rutas_protegidas_redirigen(client):
     for r in ("/socio", "/socio/reservas", "/admin", "/admin/socios"):
         resp = client.get(r)
@@ -127,6 +134,53 @@ def test_admin_crea_bloqueo_y_cobra(admin, ctx):
 def test_montos_en_colones(maria):
     html = maria.get("/socio").get_data(as_text=True)
     assert "₡" in html and "$" not in html.replace("</", "")
+
+
+def test_montos_con_decimales(ctx):
+    from app.models import config
+    assert config.moneda(38000.75) == "₡38\u00a0000,75"
+    assert config.moneda(38000) == "₡38\u00a0000"
+
+
+@pytest.mark.parametrize("estado", ["simulado", "error"])
+def test_mensajes_no_aseguran_entrega_de_correo(app, ctx, monkeypatch, estado):
+    from datetime import timedelta
+    from app.db import hoy, one
+    from app.models import cuenta, notificacion
+
+    monkeypatch.setattr(notificacion, "enviar_correo", lambda *args: (estado, "Prueba"))
+    socio = entrar(app.test_client(), "maria.solano@example.test")
+    admin = entrar(app.test_client(), ADMINS["general"], admin=True)
+    inst = one("SELECT id FROM instalaciones WHERE nombre='Cancha de tenis'")["id"]
+    datos = {"instalacion_id": inst, "fecha": (hoy() + timedelta(days=20)).isoformat(),
+             "hora_inicio": "08:00", "hora_fin": "09:00", "personas": 2}
+    html = socio.post("/socio/reservas/nueva", data=datos, follow_redirects=True).get_data(as_text=True)
+    assert "Reserva registrada." in html
+    assert "Recibirá la notificación" not in html
+    assert one("SELECT estado FROM notificaciones WHERE codigo='reserva_confirmada' ORDER BY id DESC")["estado"] == estado
+
+    pendiente = one("SELECT id FROM reservas WHERE estado='pendiente'")["id"]
+    html = admin.post(f"/admin/reservas/{pendiente}/confirmar", follow_redirects=True).get_data(as_text=True)
+    assert "notificada al socio" not in html and "historial de notificaciones" in html
+    r = one("SELECT * FROM reservas WHERE id=?", (pendiente,))
+    html = admin.post(f"/admin/reservas/{pendiente}/editar",
+                      data={"fecha": r["fecha"], "hora_inicio": r["hora_inicio"],
+                            "hora_fin": r["hora_fin"], "personas": r["personas"]},
+                      follow_redirects=True).get_data(as_text=True)
+    assert "notificada al socio" not in html and "historial de notificaciones" in html
+    html = admin.post(f"/admin/reservas/{pendiente}/cancelar", follow_redirects=True).get_data(as_text=True)
+    assert "notificada al socio" not in html and "historial de notificaciones" in html
+    html = admin.post("/admin/cuentas", data={"periodo": cuenta.periodo_actual()}, follow_redirects=True).get_data(as_text=True)
+    assert "notificado(s)" not in html
+
+    public = app.test_client()
+    mensajes = []
+    for correo in ("maria.solano@example.test", "nadie@example.test"):
+        html = public.post("/recuperar", data={"correo": correo}, follow_redirects=True).get_data(as_text=True)
+        assert "se procesará la solicitud de recuperación" in html
+        mensajes.append(re.search(r'<p class="alerta alerta-ok" role="status">(.*?)</p>', html, re.DOTALL))
+    assert all(mensajes)
+    assert mensajes[0].group(1) == mensajes[1].group(1)
 
 
 def test_modales_del_prototipo_presentes(app):
