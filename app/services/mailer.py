@@ -16,9 +16,23 @@ def enviar_correo(destinatario, asunto, cuerpo):
     msg["From"] = cfg["MAIL_FROM"]
     msg["To"] = destinatario
     msg.set_content(cuerpo)
-    etapa = "conexión"
+    etapa = "configuración"
     try:
-        with smtplib.SMTP(cfg["MAIL_SERVER"], cfg["MAIL_PORT"], timeout=10) as s:
+        if cfg["MAIL_USE_SSL"] and cfg["MAIL_USE_TLS"]:
+            raise ValueError("MAIL_USE_SSL y MAIL_USE_TLS no pueden activarse a la vez.")
+        etapa = "conexión"
+        if cfg["MAIL_USE_SSL"]:
+            conexion = smtplib.SMTP_SSL(
+                cfg["MAIL_SERVER"],
+                cfg["MAIL_PORT"],
+                timeout=10,
+                context=ssl.create_default_context(),
+            )
+        else:
+            conexion = smtplib.SMTP(
+                cfg["MAIL_SERVER"], cfg["MAIL_PORT"], timeout=10
+            )
+        with conexion as s:
             if cfg["MAIL_USE_TLS"]:
                 etapa = "STARTTLS"
                 s.starttls(context=ssl.create_default_context())
@@ -28,8 +42,8 @@ def enviar_correo(destinatario, asunto, cuerpo):
                 if metodo == "auto":
                     s.login(cfg["MAIL_USERNAME"], cfg["MAIL_PASSWORD"])
                 elif metodo == "login":
-                    if not cfg["MAIL_USE_TLS"]:
-                        raise smtplib.SMTPNotSupportedError("AUTH LOGIN requiere STARTTLS.")
+                    if not (cfg["MAIL_USE_TLS"] or cfg["MAIL_USE_SSL"]):
+                        raise smtplib.SMTPNotSupportedError("AUTH LOGIN requiere TLS.")
                     s.ehlo_or_helo_if_needed()
                     if "LOGIN" not in s.esmtp_features.get("auth", "").upper().split():
                         raise smtplib.SMTPNotSupportedError("El servidor no anuncia AUTH LOGIN.")

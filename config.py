@@ -20,7 +20,8 @@ class Config:
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
-    MAIL_USE_TLS = _bool(os.environ.get("MAIL_USE_TLS"), True)
+    MAIL_USE_TLS = _bool(os.environ.get("MAIL_USE_TLS"), False)
+    MAIL_USE_SSL = _bool(os.environ.get("MAIL_USE_SSL"), False)
     MAIL_AUTH_METHOD = os.environ.get("MAIL_AUTH_METHOD", "auto").strip().lower()
     MAIL_FROM = os.environ.get("MAIL_FROM", "Club Valle Alto <no-responder@example.com>")
 
