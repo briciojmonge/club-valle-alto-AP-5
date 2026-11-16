@@ -168,6 +168,70 @@ def test_correo_rechaza_metodo_inseguro_o_no_disponible(app, ctx, monkeypatch, t
     servidor.send_message.assert_not_called()
 
 
+def test_correo_resend_envia_por_https(app, ctx, monkeypatch):
+    import json
+    from io import BytesIO
+    from unittest.mock import MagicMock
+
+    from app.services import mailer
+
+    app.config.update(MAIL_PROVIDER="resend", RESEND_API_KEY="clave-prueba",
+                      MAIL_FROM="Club <avisos@example.test>")
+    respuesta = BytesIO(b'{"id":"mensaje-123"}')
+    abrir = MagicMock(return_value=respuesta)
+    monkeypatch.setattr(mailer, "urlopen", abrir)
+
+    assert mailer.enviar_correo("socio@example.test", "Aviso", "Cuerpo") == ("enviado", "")
+    solicitud = abrir.call_args.args[0]
+    assert solicitud.full_url == "https://api.resend.com/emails"
+    assert solicitud.get_header("Authorization") == "Bearer clave-prueba"
+    assert json.loads(solicitud.data) == {
+        "from": "Club <avisos@example.test>", "to": ["socio@example.test"],
+        "subject": "Aviso", "text": "Cuerpo",
+    }
+    assert abrir.call_args.kwargs["timeout"] == 10
+
+
+@pytest.mark.parametrize("fallo", ["clave", "http", "respuesta", "conexion"])
+def test_correo_resend_reporta_fallos(app, ctx, monkeypatch, fallo):
+    from io import BytesIO
+    from unittest.mock import MagicMock
+    from urllib.error import HTTPError, URLError
+
+    from app.services import mailer
+
+    app.config.update(MAIL_PROVIDER="resend", RESEND_API_KEY="clave-prueba",
+                      MAIL_FROM="Club <avisos@example.test>")
+    abrir = MagicMock()
+    if fallo == "clave":
+        app.config["RESEND_API_KEY"] = ""
+    elif fallo == "http":
+        abrir.side_effect = HTTPError("https://api.resend.com/emails", 403, "denegado", {}, None)
+    elif fallo == "conexion":
+        abrir.side_effect = URLError("red no disponible")
+    else:
+        abrir.return_value = BytesIO(b"{}")
+    monkeypatch.setattr(mailer, "urlopen", abrir)
+
+    estado, detalle = mailer.enviar_correo("socio@example.test", "Aviso", "Cuerpo")
+    assert estado == "error"
+    assert detalle
+    assert "clave-prueba" not in detalle
+    if fallo == "clave":
+        abrir.assert_not_called()
+    if fallo == "http":
+        assert "403" in detalle
+
+
+def test_correo_rechaza_proveedor_desconocido(app, ctx):
+    from app.services import mailer
+
+    app.config["MAIL_PROVIDER"] = "desconocido"
+    estado, detalle = mailer.enviar_correo("socio@example.test", "Aviso", "Cuerpo")
+    assert estado == "error"
+    assert "MAIL_PROVIDER" in detalle
+
+
 
 # ---- membresías
 def test_beneficiarios_solo_familiar_y_limite(ctx):

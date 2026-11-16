@@ -16,6 +16,8 @@ class Config:
     BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:5000")
 
     # Correo saliente (opcional)
+    MAIL_PROVIDER = os.environ.get("MAIL_PROVIDER", "smtp").strip().lower()
+    RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
